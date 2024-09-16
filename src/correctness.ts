@@ -1,14 +1,10 @@
 import axios from 'axios';
-import {config} from 'dotenv';
 import logger from './logger';
 
-config();
-
-export async function getCorrectness(ownerName: string, repoName: string) {
-    const token = process.env.GITHUB_TOKEN;
+export async function getCorrectness(ownerName: string, repoName: string, token: string) {
+    //const token = process.env.GITHUB_TOKEN;
     let page = 1;
     const perPage = 100; //Max number of issues per page
-    const totalFetch = 200; //Number of issues to fetch
     let allIssues: any[] = [];
     let hasMoreIssues = true;
     
@@ -18,7 +14,10 @@ export async function getCorrectness(ownerName: string, repoName: string) {
 
     try {
         // Fetch all issues page by page until there are no more issues
+
+        logger.debug(`Fetching issues for ${ownerName}/${repoName} since ${lastMonth}`);
         while(hasMoreIssues) {
+            logger.debug(`Fetching page ${page} of issues...`);
             const apiURL = `https://api.github.com/repos/${ownerName}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}&since=${lastMonth}`;
 
             const response = await axios.get(apiURL, {
@@ -28,9 +27,11 @@ export async function getCorrectness(ownerName: string, repoName: string) {
             });
 
         const issues = response.data;
+        logger.debug(`Fetched ${issues.length} issues`);
         
         //Filtering out pull requests
         const actualIssues = issues.filter((issue: any) => !issue.pull_request);
+        logger.debug(`Found ${actualIssues.length} issues after filtering out pull requests`);
 
         // Append to allIssues array
         allIssues = [...allIssues, ...actualIssues];
@@ -43,20 +44,25 @@ export async function getCorrectness(ownerName: string, repoName: string) {
     }
 
     const totalIssues = allIssues.length;
+    logger.debug(`Total issues found: ${totalIssues}`);
 
     if (totalIssues === 0) {
+        logger.debug("No issues found in the last month");
         return 0; //No issues found
     }
 
     //count the number of closed issues
     const closedIssues = allIssues.filter((issue: any) => issue.state === 'closed').length;
+    logger.debug(`Closed issues found: ${closedIssues}`);
 
     //Calculate correctness score as a ratio of closed to total issues
     const correctness = closedIssues / totalIssues;
+    logger.info(`Correctness score for ${ownerName}/${repoName}: ${correctness}`);
     return correctness;
 
-    } catch (error) {
-        logger.error("Error fetching issues from GitHub");
+    } catch (error: any) {
+        logger.info("Error fetching issues from GitHub");
+        logger.error('Error Details: ${error.message}');
         return null;
     }
 }
