@@ -2,7 +2,7 @@ import {Command} from 'commander';
 import {exec} from "child_process" //Import to run shell commands
 import {promisify} from "util" //Use promisfy to use async/wait
 import logger from './logger'; //Import the logger
-//import { run } from './runCorrectness'; //Import the correctness function
+import fs from 'fs'; //Import the file system module
 
 const execAsync = promisify(exec);
 
@@ -64,16 +64,41 @@ program
     });
 
 program
-    .command("process <urlFile>")
+    .argument("<urlFile>", "Path to the URL file")
     .description("Process a url file")
     .action((urlFile) => {
         logger.info(`Processing URLS from file: ${urlFile}`);
         // Process the file using the URL handling function
-        //run();
-        logger.info("URLs processed successfully");
-        logger.on('finish', () => {
-            process.exit(0);
-        });
+
+        if (!fs.existsSync(urlFile)) { //Check if the file exists
+            logger.info("File does not exist");
+            logger.on('finish', () => {process.exit(1);});
+        }
+
+        //Read the file and process URLs
+        try {
+            const fileContents = fs.readFileSync(urlFile, 'utf-8'); //Read the file
+            const urls = fileContents.split('\n'); //Split the file contents by new line
+
+            logger.debug(`Found ${urls.length} URLs in the file.`);
+
+            urls.forEach((url, index) => {
+                logger.debug(`Processing URL: ${url}`);
+                //Url processing logic here
+            });
+
+            logger.info("URLs processed successfully");
+            logger.on('finish', () => {
+                process.exit(0);
+            });
+
+        } catch (error: any) { //Error reading the file
+            logger.info("Error reading the file");
+            logger.debug(`Error: ${error.message}`);
+            logger.on('finish', () => {
+                process.exit(1);
+            });
+        }
     });
 
 //Handle unknown commands
