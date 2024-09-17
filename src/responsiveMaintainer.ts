@@ -53,7 +53,7 @@ export async function getResponsiveMaintainer(ownerName: string, repoName: strin
         const avgResponseTime = totalResponseTime / issuesWithResponse;
         logger.debug(`Average response time for ${ownerName}/${repoName}: ${avgResponseTime} hours`);
 
-        const responsiveMaintainerScore = Math.max(0, 1 - (avgResponseTime / 24) * 0.25); //Lose points for every day of delay
+        const responsiveMaintainerScore = Math.max(0, 1 - (Math.max(0, avgResponseTime - 24) / 24) * 0.25); //Lose points for every day of delay
         logger.info(`Responsive Maintainer score for ${ownerName}/${repoName}: ${responsiveMaintainerScore}`);
 
         return responsiveMaintainerScore;
