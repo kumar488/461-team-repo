@@ -1,10 +1,12 @@
 import axios from 'axios';
-export async function getBusFactor(owner: string, repo: string, pat: string): Promise<number | null> {
+import logger from './logger';
+
+export async function getNumContributors(owner: string, repo: string, token: string){
     try {
-      const response = await axios.get('https://api.github.com/repos/' + owner + '/' + repo + '/contributors', {
+      logger.debug(`Fetching contributors for ${owner}/${repo}`);
+      const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors`, {
         headers: {
-          'Authorization': 'token ' + pat,
-          'Accept': 'application/vnd.github.v3+json'
+          Authorization: `token ${token}`,
         },
         params: {
           per_page: 100,
@@ -12,13 +14,56 @@ export async function getBusFactor(owner: string, repo: string, pat: string): Pr
         }
       });
       const numContributors = response.data.length;
-      const minAcceptableContributors = 10;
-      const maxAcceptableContributors = 100;
-      const busFactor = (numContributors - minAcceptableContributors) / (maxAcceptableContributors - minAcceptableContributors);
-      return busFactor;
+      logger.debug(`Fetched ${numContributors} contributors`);
+      return numContributors;
     }
-    catch (error) {
-      console.error(`Error fetching repository info: ${error}`);
+    catch (error: any) {
+      logger.debug(`Error fetching contributors: ${error.message}`);
+      throw error;
+    }
+}
+
+export function calculateBusFactor(minAcceptableContributors: number, maxAcceptableContributors: number, numContributors: number){
+    // Handle Edge Cases: Validate Arguments
+    if (minAcceptableContributors < 0 || maxAcceptableContributors < 0 || numContributors < 0) {
+      logger.debug(`Invalid Arguments: Arguments must be positive integers`);
       return null;
     }
+    if (minAcceptableContributors >= maxAcceptableContributors) {
+      logger.debug(`Invalid Arguments: minAcceptableContributors(${minAcceptableContributors}) must be less than maxAcceptableContributors(${maxAcceptableContributors})`);
+      return null;
+    }
+
+    let busFactor = 0;
+    busFactor = (numContributors - minAcceptableContributors) / (maxAcceptableContributors - minAcceptableContributors);
+    
+    // Handle Edge Case: Repo has fewer than 10 contributors
+    if (busFactor < 0) {
+      busFactor = 0;
+    }
+    // Handle Edge Case: Repo has more than 100 contributors
+    if (busFactor > 1) {
+      busFactor = 1;
+    }
+
+    return busFactor;
+}
+
+export async function getBusFactor(owner: string, repo: string, token: string){
+  try {
+    const numContributors = await getNumContributors(owner, repo, token);
+    const minAcceptableContributors = 10;
+    const maxAcceptableContributors = 100;
+    const busFactor = calculateBusFactor(minAcceptableContributors, maxAcceptableContributors, numContributors);
+    if (busFactor === null) {
+      logger.error(`Error getting bus factor: Invalid arguments`);
+      return null;
+    }
+    logger.info(`Bus Factor score for ${owner}/${repo}: ${busFactor}`);
+    return busFactor;
+  }
+  catch (error: any) {
+    logger.error(`Error getting bus factor: ${error.message}`);
+    return null;
+  }
 }
