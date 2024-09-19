@@ -60,7 +60,7 @@ export async function getCorrectness(ownerName: string, repoName: string, token:
         logger.info(`Correctness score for ${ownerName}/${repoName}: ${correctness}`);
         return correctness
     } catch (error: any) {
-        logger.error(`Error calculating correctness: ${error.message}`);
+        logger.debug(`Error calculating correctness: ${error.message}`);
         return null;
     }
 }
