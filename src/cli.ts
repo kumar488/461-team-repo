@@ -3,6 +3,7 @@ import {exec} from "child_process" //Import to run shell commands
 import {promisify} from "util" //Use promisfy to use async/wait
 import logger from './logger'; //Import the logger
 import fs from 'fs'; //Import the file system module
+import { log } from 'console';
 
 const execAsync = promisify(exec);
 
@@ -45,21 +46,37 @@ program
         logger.info("Running test cases");
         //Run test cases through Jest
         try {
-            const {stdout, stderr} = await execAsync('npx jest'); //Run test cases
-            logger.info("Test Output: \n", stdout); //Output the results from jest
-            if (stderr) { logger.debug(`Test Errors:\n${stderr}`); } //Output any errors
-            logger.info("Test cases ran successfully");
-            logger.on('finish', () => {
-                process.exit(0);
-            });
+            // Run jest with coverage
+            const { stdout, stderr} = await execAsync('npx jest --coverage --silent'); // Add --silent to keep the output clean
+            logger.debug(`Test Results:\n${stdout}`);
+            logger.debug(`Test Errors:\n${stderr}`);
+            // Regex to extract passed test count, total test count, and line coverage percentage
+            const testResults = stderr.match(/Tests:\s+(\d+)\s+passed,\s+(\d+)\s+total/);
+            const coverageResults = stdout.match(/All files\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+([\d.]+)/);
 
-        } catch (error: any) { //test cases failed
-            logger.info('Error running test cases');
-            if(error.stdout) { logger.debug(`Test Output:\n${error.stdout}`); } //Output the results from jest
-            if(error.stderr) { logger.debug(`Test Errors:\n${error.stderr}`); } //Output any errors
+            const passed = testResults ? parseInt(testResults[1], 10) : 0;
+            const total = testResults ? parseInt(testResults[2], 10) : 0;
+            const coverage = coverageResults ? parseFloat(coverageResults[1]) : 0;
+
+            // Output the required result format: “X/Y test cases passed. Z% line coverage achieved.”
+            logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
+
+            // Exit with code 0 for success or non-zero for failure
+            if (passed === total) {
+                logger.on('finish', () => {
+                    process.exit(0);  // Success
+                });
+            } else {
+                logger.on('finish', () => {
+                    process.exit(1);  // Failed
+                });
+            }
+        } catch (error) {
+            logger.info('Error running test cases:', error);
+            logger.debug(`Test Errors:\n${error}`);
             logger.on('finish', () => {
-                process.exit(1);  
-            });
+                process.exit(1);  // Non-zero exit code on error
+            }); 
         }
     });
 
