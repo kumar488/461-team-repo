@@ -17,7 +17,7 @@ program
     .description('Install dependencies')
     .action(async () => {
         logger.info("Installing dependencies...");
-        const modules = ['jest', 'axios', 'dotenv', 'commander', 'winston', 'fakethingy12ewfwfew']; //List of modules to install
+        const modules = ['jest', 'axios', 'dotenv', 'commander', 'winston']; //List of modules to install
         const modulesString = modules.join(' '); //Convert the list to a string
         try {
             const {stdout, stderr} = await execAsync('npm install ' + modulesString); //Run npm install
@@ -47,7 +47,7 @@ program
         //Run test cases through Jest
         try {
             // Run jest with coverage
-            const { stdout, stderr} = await execAsync('npx jest --coverage --silent'); // Add --silent to keep the output clean
+            const { stdout, stderr} = await execAsync('npx jest --coverage --silent --noStackTrace'); // Add --silent to keep the output clean
             logger.debug(`Test Results:\n${stdout}`);
             logger.debug(`Test Errors:\n${stderr}`);
             // Regex to extract passed test count, total test count, and line coverage percentage
@@ -58,7 +58,6 @@ program
             const total = testResults ? parseInt(testResults[2], 10) : 0;
             const coverage = coverageResults ? parseFloat(coverageResults[1]) : 0;
 
-            // Output the required result format: “X/Y test cases passed. Z% line coverage achieved.”
             logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
 
             // Exit with code 0 for success or non-zero for failure
@@ -71,9 +70,17 @@ program
                     process.exit(1);  // Failed
                 });
             }
-        } catch (error) {
-            logger.info('Error running test cases:', error);
-            logger.debug(`Test Errors:\n${error}`);
+        } catch (error : any) {
+            logger.info("Error running test cases");
+
+            const testResults = error.stderr.match(/Tests:\s+(\d+)\s+failed,\s+(\d+)\s+passed,\s+(\d+)\s+total/);
+            const coverageResults = error.stdout.match(/All files\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+([\d.]+)/);
+            const passed = testResults ? parseInt(testResults[2], 10) : 0;
+            const total = testResults ? parseInt(testResults[3], 10) : 0;
+            const coverage = coverageResults ? parseFloat(coverageResults[1]) : 0;
+            
+            logger.debug(`Test Errors:\n${error.stderr}`);
+            logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
             logger.on('finish', () => {
                 process.exit(1);  // Non-zero exit code on error
             }); 

@@ -35,22 +35,27 @@ export async function fetchCorrectnessData(ownerName: string, repoName: string, 
 }
 
 export async function calculateCorrectness(issues: any[]) {
-    logger.debug(`Fetched ${issues.length} issues`);
-    //Filter out pull requests
-    const actualIssues = issues.filter((issue: any) => !issue.pull_request);
-    logger.debug(`Found ${actualIssues.length} issues after filtering out pull requests`);
+    try {
+        logger.debug(`Fetched ${issues.length} issues`);
+        //Filter out pull requests
+        const actualIssues = issues.filter((issue: any) => !issue.pull_request);
+        logger.debug(`Found ${actualIssues.length} issues after filtering out pull requests`);
 
-    if (actualIssues.length === 0) {
-        logger.debug("No issues found in the last month");
-        return 0;
+        if (actualIssues.length === 0) {
+            logger.debug("No issues found in the last month");
+            return 0;
+        }
+
+        //Count the number of closed issues
+        const closedIssues = actualIssues.filter((issue: any) => issue.state === 'closed').length;
+        
+        //Calculate correctness score as the a ratio of closed to total issues
+        const correctness = closedIssues / actualIssues.length;
+        return correctness;
+    } catch (error: any) {
+        logger.debug(`Error calculating correctness: ${error.message}`);
+        throw null;
     }
-
-    //Count the number of closed issues
-    const closedIssues = actualIssues.filter((issue: any) => issue.state === 'closed').length;
-    
-    //Calculate correctness score as the a ratio of closed to total issues
-    const correctness = closedIssues / actualIssues.length;
-    return correctness;
 }
 
 export async function getCorrectness(ownerName: string, repoName: string, token: string) {

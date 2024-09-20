@@ -1,4 +1,5 @@
-import { calculateCorrectness } from '../src/correctness'; // Adjust the path as necessary
+import exp from 'constants';
+import { calculateCorrectness, fetchCorrectnessData, getCorrectness } from '../src/correctness'; // Adjust the path as necessary
 
 describe('calculateCorrectness', () => {
 
@@ -50,4 +51,25 @@ describe('calculateCorrectness', () => {
         expect(score).toBe(2 / 3); // Only 3 valid issues (2 closed, 1 open)
     });
 
+    it('should throw an error when using invalid repo or token', async () => {
+        const invalidRepo = 'invalidRepo';
+        const invalidOwner = 'invalidOwner';
+        const invalidToken = 'invalidToken';
+    
+        // Expect the fetchCorrectnessData to reject with an error
+        await expect(fetchCorrectnessData(invalidOwner, invalidRepo, invalidToken))
+          .rejects
+          .toThrow('Request failed with status code 401'); 
+    });
+
+    it('should return null when using invalid repo or token', async () => {
+        const invalidRepo = 'invalidRepo';
+        const invalidOwner = 'invalidOwner';
+        const invalidToken = 'invalidToken';
+
+        // Expect the getCorrectness to return null
+        const score = await getCorrectness(invalidOwner, invalidRepo, invalidToken)
+        expect(score).toBeNull();
+    });
+    
 });
