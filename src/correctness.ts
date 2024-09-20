@@ -1,21 +1,16 @@
-import axios from 'axios';
+import axios, { all } from 'axios';
 import logger from './logger';
 
-export async function getCorrectness(ownerName: string, repoName: string, token: string) {
-    //const token = process.env.GITHUB_TOKEN;
+export async function fetchCorrectnessData(ownerName: string, repoName: string, token: string) {
     let page = 1;
-    const perPage = 100; //Max number of issues per page
+    const perPage = 100;
     let allIssues: any[] = [];
     let hasMoreIssues = true;
-    
-    // Calculate the date for one month ago
+
     const now = new Date();
     const lastMonth = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
 
     try {
-        // Fetch all issues page by page until there are no more issues
-
-        logger.debug(`Fetching issues for ${ownerName}/${repoName} since ${lastMonth}`);
         while(hasMoreIssues) {
             logger.debug(`Fetching page ${page} of issues...`);
             const apiURL = `https://api.github.com/repos/${ownerName}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}&since=${lastMonth}`;
@@ -26,43 +21,51 @@ export async function getCorrectness(ownerName: string, repoName: string, token:
                 }
             });
 
-        const issues = response.data;
+            const issues = response.data;
+            allIssues = [...allIssues, ...issues];
+            hasMoreIssues = issues.length === perPage;
+            page++;
+        }
+
+        return allIssues;
+    } catch (error: any) {
+        logger.debug(`Error fetching issues: ${error.message}`);
+        throw error;
+    }
+}
+
+export async function calculateCorrectness(issues: any[]) {
+    try {
         logger.debug(`Fetched ${issues.length} issues`);
-        
-        //Filtering out pull requests
+        //Filter out pull requests
         const actualIssues = issues.filter((issue: any) => !issue.pull_request);
         logger.debug(`Found ${actualIssues.length} issues after filtering out pull requests`);
 
-        // Append to allIssues array
-        allIssues = [...allIssues, ...actualIssues];
-
-        if (issues.length < perPage) {
-            hasMoreIssues = false;
-        } else {
-            page++; //Move to the next page
+        if (actualIssues.length === 0) {
+            logger.debug("No issues found in the last month");
+            return 0;
         }
-    }
 
-    const totalIssues = allIssues.length;
-    logger.debug(`Total issues found: ${totalIssues}`);
-
-    if (totalIssues === 0) {
-        logger.debug("No issues found in the last month");
-        return 0; //No issues found
-    }
-
-    //count the number of closed issues
-    const closedIssues = allIssues.filter((issue: any) => issue.state === 'closed').length;
-    logger.debug(`Closed issues found: ${closedIssues}`);
-
-    //Calculate correctness score as a ratio of closed to total issues
-    const correctness = closedIssues / totalIssues;
-    logger.info(`Correctness score for ${ownerName}/${repoName}: ${correctness}`);
-    return correctness;
-
+        //Count the number of closed issues
+        const closedIssues = actualIssues.filter((issue: any) => issue.state === 'closed').length;
+        
+        //Calculate correctness score as the a ratio of closed to total issues
+        const correctness = closedIssues / actualIssues.length;
+        return correctness;
     } catch (error: any) {
-        logger.info("Error fetching issues from GitHub");
-        logger.error('Error Details: ${error.message}');
+        logger.debug(`Error calculating correctness: ${error.message}`);
+        throw null;
+    }
+}
+
+export async function getCorrectness(ownerName: string, repoName: string, token: string) {
+    try {
+        const issues = await fetchCorrectnessData(ownerName, repoName, token);
+        const correctness = await calculateCorrectness(issues);
+        logger.info(`Correctness score for ${ownerName}/${repoName}: ${correctness}`);
+        return correctness
+    } catch (error: any) {
+        logger.debug(`Error calculating correctness: ${error.message}`);
         return null;
     }
 }
