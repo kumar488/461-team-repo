@@ -26,6 +26,7 @@ program
 
             if (stderr) { logger.debug(`Error installing dependencies: ${stderr}`); } //Output any errors
             logger.on('finish', () => { 
+                console.log(0);
                 process.exit(0);  // Exit after logs are flushed
             });
         }
@@ -34,6 +35,7 @@ program
             if(error.stdout) { logger.debug(`Output:\n${error.stdout}`); } //Output the results from npm install
             if(error.stderr) { logger.debug(`Errors:\n${error.stderr}`); } //Output any errors
             logger.on('finish', () => {
+                console.log(1);
                 process.exit(1);  // Exit after logs are flushed
             });
         }
@@ -63,10 +65,12 @@ program
             // Exit with code 0 for success or non-zero for failure
             if (passed === total) {
                 logger.on('finish', () => {
+                    console.log(0);
                     process.exit(0);  // Success
                 });
             } else {
                 logger.on('finish', () => {
+                    console.log(1);
                     process.exit(1);  // Failed
                 });
             }
@@ -82,6 +86,7 @@ program
             logger.debug(`Test Errors:\n${error.stderr}`);
             logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
             logger.on('finish', () => {
+                console.log(1);
                 process.exit(1);  // Non-zero exit code on error
             }); 
         }
@@ -90,13 +95,22 @@ program
 program
     .argument("<urlFile>", "Path to the URL file")
     .description("Process a url file")
-    .action((urlFile) => {
+    .action(async (urlFile) => {
+        const result = await checkEnvVariables(); //Check if the environment variables are set
+        if (result === 1) { //Exit if the environment variables are not set
+            logger.close();
+            console.log(1);
+            process.exit(1);
+        }
+
         logger.info(`Processing URLS from file: ${urlFile}`);
         // Process the file using the URL handling function
 
         if (!fs.existsSync(urlFile)) { //Check if the file exists
             logger.info("File does not exist");
-            logger.on('finish', () => {process.exit(1);});
+            logger.close();
+            console.log(1);
+            process.exit(1);
         }
 
         //Read the file and process URLs
@@ -112,16 +126,16 @@ program
             });
 
             logger.info("URLs processed successfully");
-            logger.on('finish', () => {
-                process.exit(0);
-            });
+            logger.close();
+            console.log(0);
+            process.exit(0);
 
         } catch (error: any) { //Error reading the file
             logger.info("Error reading the file");
             logger.debug(`Error: ${error.message}`);
-            logger.on('finish', () => {
-                process.exit(1);
-            });
+            logger.close();
+            console.log(1);
+            process.exit(1);
         }
     });
 
@@ -129,8 +143,24 @@ program
 program.on('command:*', () => {
     logger.info('error: unknown command');
     logger.on('finish', () => {
+        console.log(1);
         process.exit(1);
     });
 });
 
 program.parse(process.argv)
+
+async function checkEnvVariables() {
+    if (!process.env.LOG_FILE) {
+        logger.info("Environment variable LOG_FILE is not defined");
+        return 1;
+    }
+
+    if (!process.env.GITHUB_TOKEN) {
+        logger.info("Environment variable GITHUB_TOKEN is not defined");
+        return 1;
+    }
+
+    logger.debug("Environment variables are set");
+    return 0;
+}
