@@ -1,4 +1,4 @@
-import { calculateBusFactor } from '../src/bf';
+import { calculateBusFactor } from '../src/busFactor';
 
 describe('calculateBusFactor', () => {
     it('should return null if minAcceptableContributors is negative', async () => {
