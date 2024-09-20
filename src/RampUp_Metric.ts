@@ -1,3 +1,27 @@
+const fs = require('fs');
+const path = require('path');
+const AdmZip = require('adm-zip');
+
+// Placeholder for the GitHub token
+const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN';
+
+// If authentication is not needed, set Authorization_Needed to false
+// If authentication is needed, set Authorization_Needed to true
+const Authorization_Needed = false;
+
+(async () => {
+    const fetch = (await import('node-fetch')).default;
+    
+    // Now you can use fetch
+    fetch('https://api.github.com')
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
+    })();
+
+// Import the adm-zip module
+
+
 // Milestone: 3
 // Task 2:  - Implement Ramp-Up Metric
 //          - Create Unit Test Cases
@@ -57,22 +81,80 @@ score = (actual number of sections) / (expected number of sections)
 // Expected number of sections
 const expectedSections = 20;
 
+// Function to get the default branch of a GitHub repository
+// Needed to make sure we download the correct branch
+// Because SOME people decide to use names other than 'main'
+async function getDefaultBranch(repoUrl) {
+    var response;
+
+    // Parse the repository URL to get the username and repository name
+    const urlParts = new URL(repoUrl);
+    // Split the pathname by '/' and remove any empty strings
+    const [username, repo] = urlParts.pathname.split('/').filter(Boolean);
+    // Construct the API URL to get the repository info
+    const apiUrl = `https://api.github.com/repos/${username}/${repo}`;
+    
+    // Fetch the repository info
+    // Add the GitHub token if authenticated requests are needed. Go to top of file to set the token.
+    if (Authorization_Needed) {
+        response = await fetch(apiUrl, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`
+            }
+        });
+    }
+    else {
+        response = await fetch(apiUrl);
+    }
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch repository info: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.default_branch;
+}
 
 // To Do:
 // [1] Download a repository from GitHub
+// Function to downloads a GitHub repository as a zip and extracts it to the specified directory.
+async function downloadGitHubRepo(repoUrl, destinationFolder) {
+    try {
+        // Get the default branch name
+        const defaultBranch = await getDefaultBranch(repoUrl);
+        
+        // Construct the URL to download the repository as a zip file
+        const repoZipUrl = `${repoUrl}/archive/refs/heads/${defaultBranch}.zip`;
 
-
+        // Fetch the zip file from GitHub
+        const response = await fetch(repoZipUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to download repository: ${response.statusText}`);
+        }
+        const buffer = await response.arrayBuffer();
+        
+        // Write the zip file to a temporary location
+        const zipFilePath = path.join(destinationFolder, 'repo.zip');
+        fs.writeFileSync(zipFilePath, Buffer.from(buffer));
+        
+        // Extract the zip file
+        const zip = new AdmZip(zipFilePath);
+        zip.extractAllTo(destinationFolder, true);
+        
+        // Remove the zip file after extraction
+        fs.unlinkSync(zipFilePath);
+        
+        console.log(`Repository downloaded and extracted to ${destinationFolder}`);
+    } catch (error) {
+        console.error(`Error downloading repository: ${error}`);
+    }
+}
 
 
 // Read through directory, read through every folder, and check if it contains README.md
 // If it does, read the README file and check if it contains any of the sections mentioned above
 
-// Funtion to read all the files in a directory
-const fs = require('fs');
-const path = require('path');
-
 // Function to read all the files in a directory
-// If it is a folder, save to the fol
 function readFiles(dirPath) {
     var files = fs.readdirSync(dirPath);
 
@@ -129,20 +211,56 @@ function checkSections(files) {
     return (score / expectedSections);
 }
 
-// Call the function to read all the files in the directory
-// Use './' to read the current directory
-// Use '../' to read the parent directory
-const dirPath = path.join(__dirname, '../');
-const files = readFiles(dirPath);
-
-// Print 'files' to terminal
-console.log(files);
-
-// Call the function to check if the README.md contains any of the sections mentioned above
-// Print the score to the terminal
-const score = checkSections(files);
-console.log(score);
 
 
 // To Do:
 // [2] Delete the repository from the local machine
+// Deletes the specified folder and its contents.
+function deleteFolder(folderPath) {
+    try {
+        if (fs.existsSync(folderPath)) {
+            fs.rmSync(folderPath, { recursive: true, force: true });
+            console.log(`Folder ${folderPath} has been deleted.`);
+        } else {
+            console.log(`Folder ${folderPath} does not exist.`);
+        }
+    } catch (error) {
+        console.error(`Error deleting folder: ${error}`);
+    }
+}
+
+function test_RampUp() {
+    // Call the function to download the repository from GitHub
+    downloadGitHubRepo('https://github.com/octocat/Hello-World', './');
+
+    // Call the function to read all the files in the directory
+    // Use './' to read the current directory
+    // Use '../' to read the parent directory
+    // Temporary Local Folder: ./temp_repo
+    const dirPath = path.join(__dirname, './');
+    console.log(dirPath);
+    const files = readFiles(dirPath);
+
+    // If FALSE is returned, no README.md was found
+    var score;
+    if (files == false) {
+        console.log('No README.md found');
+        score = 0;
+    }
+    else {
+        // Call the function to check if the README.md contains any of the sections mentioned above
+        // Print the score to the terminal
+        score = checkSections(files);
+        
+    }
+    console.log("Score:", score);
+
+    setTimeout(() => {
+        // Call the function to delete the repository from the local machine
+        deleteFolder('./Hello-World-master');
+    }
+    , 1000);
+}
+
+
+
