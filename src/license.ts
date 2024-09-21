@@ -1,78 +1,93 @@
-import axios from 'axios';
+import axios from "axios";
+import fs from "fs";
+import path from "path";
+import logger from "./logger";
+import util from "util";
+import { exec } from "child_process";
 
-import fetch from 'node-fetch';
+const execAsync = util.promisify(exec);
 
-async function fetchReadme(repoUrl: string): Promise<string | null> {
-    // Extract the user/repo format from the URL
-    const regex = /github\.com\/([^\/]+\/[^\/]+)\/?$/;
-    const match = repoUrl.match(regex);
-    
-    if (!match) {
-        console.error('Invalid GitHub repository URL');
-        return null;
-    }
-    
-    const repo = match[1];
-    const readmeUrl = `https://raw.githubusercontent.com/${repo}/main/README.md`;
+export async function getLicense(ownerName: string, repoName: string): Promise<number> {
+    let cloneDir = '';
 
     try {
-        const response = await fetch(readmeUrl);
-        if (!response.ok) {
-            throw new Error(`Error fetching README: ${response.statusText}`);
+        // Clone the repository into the licenseRepos folder
+        cloneDir = await cloneRepo(ownerName, repoName);
+
+        // Check for LICENSE file
+        const licensePath = path.join(cloneDir, 'LICENSE');
+        if (fs.existsSync(licensePath)) {
+            const licenseContent = fs.readFileSync(licensePath, 'utf-8');
+            logger.debug(`LICENSE file found for ${ownerName}/${repoName}`);
+            return checkLicenseCompatibility(licenseContent) ? 1 : 0;
         }
-        const readmeText = await response.text();
-        return readmeText;
-    } catch (error) {
-        console.error(error);
-        return null;
+
+        // Check for README.md file
+        const readmePath = path.join(cloneDir, 'README.md');
+        if (fs.existsSync(readmePath)) {
+            const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+            logger.debug(`README.md file found for ${ownerName}/${repoName}`);
+            return checkLicenseCompatibility(readmeContent) ? 1 : 0;
+        }
+
+        // If neither file is found, return 0 (incompatible)
+        logger.debug(`No LICENSE or README.md file found for ${ownerName}/${repoName}`);
+        return 0;
+
+    } catch (error: any) {
+        logger.info('Error occurred while getting license');
+        logger.debug(`Error details: ${error.message}`);
+        return 0;
+    } finally {
+        // Clean up the cloned repository
+        if (cloneDir) {
+            await deleteRepo(repoName); // Pass repoName to deleteRepo, not cloneDir
+        }
     }
 }
 
-async function fetchLicense(repoUrl: string): Promise<string | null> {
-    // Extract the user/repo format from the URL
-    const regex = /github\.com\/([^\/]+\/[^\/]+)\/?$/;
-    const match = repoUrl.match(regex);
-    
-    if (!match) {
-        console.error('Invalid GitHub repository URL');
-        return null;
-    }
-    
-    const repo = match[1];
-    const licenseUrl = `https://raw.githubusercontent.com/${repo}/main/LICENSE`;
+export function checkLicenseCompatibility(content: string) {
+    const compatibleLicensesRegex = /LGPLv2\.1|Lesser General Public License v2\.1|GPLv2|General Public License v2|MIT License|BSD 2-Clause License|BSD 3-Clause License|Apache License 2\.0/i;
+    const isCompatible = compatibleLicensesRegex.test(content);
+    logger.debug(`License compatibility: ${isCompatible ? 'Compatible' : 'Incompatible'}`);
+    return isCompatible;
+}
+
+// Function to clone a GitHub repo
+export async function cloneRepo(ownerName: string, repoName: string): Promise<string> {
+    const repoUrl = `https://github.com/${ownerName}/${repoName}.git`;
+    const licenseReposDir = path.join(__dirname, 'licenseRepos');
+    const cloneDir = path.join(licenseReposDir, repoName);
 
     try {
-        const response = await fetch(licenseUrl);
-        if (!response.ok) {
-            throw new Error(`Error fetching license: ${response.statusText}`);
+        // Ensure the licenseRepos directory exists, if not, create it
+        if (!fs.existsSync(licenseReposDir)) {
+            fs.mkdirSync(licenseReposDir);
+            logger.info(`Created directory: ${licenseReposDir}`);
         }
-        const licenseText = await response.text();
-        return licenseText;
-    } catch (error) {
-        console.error(error);
-        return null;
+
+        logger.debug(`Cloning repository from ${repoUrl} into ${cloneDir}...`);
+        await execAsync(`git clone --no-checkout ${repoUrl} ${cloneDir}`);
+        await execAsync(`cd ${cloneDir} && git sparse-checkout init --cone`);
+        await execAsync(`cd ${cloneDir} && git sparse-checkout set LICENSE README.md`);
+        await execAsync(`cd ${cloneDir} && git checkout`);
+        logger.info(`Repository cloned successfully to ${cloneDir}`);
+        return cloneDir;
+    } catch (error: any) {
+        logger.info(`Error cloning repository: ${error.message}`);
+        throw error;
     }
 }
 
-function containsLicensePhrase(readme: string, phrase: string): boolean {
-    const regex = new RegExp(phrase, 'i'); // case-insensitive search
-    return regex.test(readme);
-}
+export async function deleteRepo(repoName: string) {
+    const cloneDir = path.join(__dirname, 'licenseRepos', repoName);
 
-async function checkLicenseInReadme(repoUrl: string) {
-    const readme = await fetchReadme(repoUrl);
-    const license = await fetchLicense(repoUrl);
-    if (readme) {
-        const hasLicenseR = containsLicensePhrase(readme, 'MIT License');
-        console.log(`The README ${hasLicenseR ? 'contains' : 'does not contain'} the phrase "MIT License".`);
-        if ((!hasLicenseR) && license) {
-            const hasLicenseL = containsLicensePhrase(license, 'MIT License');
-            console.log(`The LICENSE ${hasLicenseL ? 'contains' : 'does not contain'} the phrase "MIT License".`);
-        }
+    try {
+        logger.debug(`Deleting cloned repository at ${cloneDir}...`);
+        await fs.promises.rm(cloneDir, { recursive: true, force: true });
+        logger.info(`Repository deleted successfully at ${cloneDir}`);
+    } catch (error: any) {
+        logger.info(`Error deleting repository: ${error.message}`);
+        throw error;
     }
-    
 }
-
-// Example usage
-//const repositoryUrl = 'https://github.com/someuser/somerepo';
-//checkLicenseInReadme(repositoryUrl);
