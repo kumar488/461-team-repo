@@ -7,7 +7,6 @@ import {getLicense} from './license'
 import logger from './logger';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
-import { get } from 'http'
 dotenv.config();
 
 export async function RunProject(inputFilePath: string) {
@@ -98,6 +97,10 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         //Net Score Calculation and Latency
         const netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
         const netScoreEnd = Date.now();
+        if (netScore === null) {
+            logger.debug('Error computing Net Score');
+            return null;
+        }
         logger.info(`Net Score for ${owner}/${repo}: ${netScore}`);
 
         //Latency Calculations (in seconds)
