@@ -30,11 +30,12 @@ export async function RunProject(inputFilePath: string) {
 }
 
 export async function processBatch(url_batch: string[], TOKEN: string) {
+    let urls_processed = 0;
     for (const url of url_batch) {
         const repoinfo = await handleURL(url);
         if (!repoinfo) {
-            console.error ("Error: URL not compatible. Please enter github.com or npmjs.com URL\n");
-            return;
+            logger.debug("Error: URL not compatible. Please enter github.com or npmjs.com URL\n");
+            return null;
         }
         else {
             const owner = repoinfo['owner'];
@@ -43,8 +44,13 @@ export async function processBatch(url_batch: string[], TOKEN: string) {
             if (getNetScore === null) {
                 logger.debug(`Error performing Net Score analysis for ${owner}/${repo}`);
             }
+            else {
+                urls_processed++;
+            }
         }
     }
+    logger.debug(`Processed ${urls_processed}/${url_batch.length} URLs`);
+    return urls_processed/url_batch.length;
 }
 
 export async function getNetScore(url:string, owner:string, repo:string, TOKEN: string) {
