@@ -1,4 +1,4 @@
-// import logger from './logger';
+import logger from './logger';
 
 const fs = require('fs');
 const path = require('path');
@@ -77,7 +77,7 @@ const expectedSections = 26;
 // Function to get the default branch of a GitHub repository
 // Needed to make sure we download the correct branch
 // Because SOME people decide to use names other than 'main'
-async function getDefaultBranch(repoUrl) {
+async function getDefaultBranch(repoUrl: string) {
     var response;
 
     // Parse the repository URL to get the username and repository name
@@ -106,88 +106,78 @@ async function getDefaultBranch(repoUrl) {
         return data.default_branch;
     }
     catch (error) {
-        console.log(`Error fetching default branch: ${error}`);
-        // logger.debug(`Error fetching default branch: ${error}`);
+        // console.log(`Error fetching default branch: ${error}`);
+        logger.debug(`Error fetching default branch: ${error}`);
     }
 }
-
-// To Do:
-// [1] Download a repository from GitHub
-// Function to downloads a GitHub repository as a zip and extracts it to the specified directory.
-async function downloadGitHubRepo(repoUrl, destinationFolder) {
+export async function downloadGitHubRepo(repoUrl: string, destinationFolder: string) {
     if(repoUrl == null) {
-        // logger.debug('Repository URL is null');
+        logger.debug('Repository URL is null');
         return;
     }
     else if(destinationFolder == null) {
-        // logger.debug('Destination folder is null');
+        logger.debug('Destination folder is null');
         return;
     }
     else if(repoUrl == "Skip") {
         // Skip the download
         return;
     }
-    console.log(`Downloading repository from ${repoUrl} to ${destinationFolder}`);
+    // console.log(`Downloading repository from ${repoUrl} to ${destinationFolder}`);
 
     try {
         // Get the default branch name
-        console.log(`Fetching default branch for ${repoUrl}`);
+        // console.log(`Fetching default branch for ${repoUrl}`);
         const defaultBranch = await getDefaultBranch(repoUrl);
-        console.log(`Default branch: ${defaultBranch}`);
+        // console.log(`Default branch: ${defaultBranch}`);
 
         // Get last path of the URL
         const urlParts = new URL(repoUrl);
         const repoName = urlParts.pathname.split('/').filter(Boolean).pop();
-        console.log(`Repository name: ${repoName}`);
+        // console.log(`Repository name: ${repoName}`);
 
         // Concat path and default branch ("path-defaultBranch")
         const pathDefaultBranch = `./${repoName}-${defaultBranch}`;
-        console.log(`Path and default branch: ${pathDefaultBranch}`);
+        // console.log(`Path and default branch: ${pathDefaultBranch}`);
 
         // Construct the download URL
         const downloadUrl = `${repoUrl}/archive/${defaultBranch}.zip`;
-        console.log(`Download URL: ${downloadUrl}`);
+        // console.log(`Download URL: ${downloadUrl}`);
 
         // Fetch the repository zip
         const response = await axios.get(downloadUrl, {
             responseType: 'arraybuffer'
         });
-        console.log(`Repository zip fetched`);
+        // console.log(`Repository zip fetched`);
 
         // Write the zip to a file
         fs.writeFileSync(`${pathDefaultBranch}.zip`, response.data);
-        console.log(`Repository zip saved`);
+        // console.log(`Repository zip saved`);
 
         // Extract the zip to the specified directory
         const zip = new AdmZip(`${pathDefaultBranch}.zip`);
         zip.extractAllTo(destinationFolder, true);
-        console.log(`Repository downloaded and extracted to ${destinationFolder}`);
+        // console.log(`Repository downloaded and extracted to ${destinationFolder}`);
 
         // Delete the zip file
         fs.rmSync(`${pathDefaultBranch}.zip`);
-        console.log(`Repository zip deleted`);
+        // console.log(`Repository zip deleted`);
 
         // Return the path to the extracted folder
-        // logger.info(`Repository downloaded and extracted to ${destinationFolder}`);
+        logger.info(`Repository downloaded and extracted to ${destinationFolder}`);
         return pathDefaultBranch;
     } catch (error) {
-        console.log(`Error downloading repository: ${error}`);
-        // logger.debug(`Error downloading repository: ${error}`);
+        // console.log(`Error downloading repository: ${error}`);
+        logger.debug(`Error downloading repository: ${error}`);
     }
 }
-
-
-// Read through directory, read through every folder, and check if it contains README.md
-// If it does, read the README file and check if it contains any of the sections mentioned above
-
-// Function to read all the files in a directory
-function readFiles(dirPath) {
+export function readFiles(dirPath: string) {
     var files = fs.readdirSync(dirPath);
     console.log(`Reading files from ${dirPath}`);
 
     // Read current directory and check if README.md exists
     if (files.includes('README.md')) {
-        files = ['README.md', dirPath];
+        return ['README.md', dirPath];
     }
     // If README.md does not exist in the current directory, read through all the folders until it is found
     // If not found, return 'false' (no README.md found)
@@ -196,23 +186,18 @@ function readFiles(dirPath) {
             const filePath = path.join(dirPath, file);
             const stat = fs.statSync(filePath);
             if (stat.isDirectory()) {
-                files = readFiles(filePath);
-                if(files.includes('README.md')) {
+                let dir_files = readFiles(filePath);
+                if(dir_files.includes('README.md')) {
                     return ['README.md', filePath];
                 }
             }
         }
     }
-    return files;
+    return 'false';
 }
-
-// Open README.md and check if it contains any of the sections mentioned above
-// If it does, increment the score
-// If it does not, do nothing
-// Return the score
-function checkSections(files) {
+export function checkSections(files: string | any[]) {
     // If files doesn't exist, return 0
-    console.log(files);
+    console.log('files: ' + files);
 
     if(files == null) {
         console.log(`No files found in the directory`);
@@ -244,13 +229,7 @@ function checkSections(files) {
     console.log('Count of sections: ' + score);
     return (score / expectedSections).toFixed(2);
 }
-
-
-
-// To Do:
-// [2] Delete the repository from the local machine
-// Deletes the specified folder and its contents.
-function deleteFolder(folderPath) {
+export function deleteFolder(folderPath: string | undefined) {
     try {
         if (fs.existsSync(folderPath)) {
             fs.rmSync(folderPath, { recursive: true, force: true });
@@ -262,11 +241,14 @@ function deleteFolder(folderPath) {
         console.error(`Error deleting folder: ${error}`);
     }
 }
-
-async function test_RampUp(url) {
+export async function test_RampUp(url: string) {
     // Call the function to download the repository from GitHub
     const filetoDelete = await downloadGitHubRepo(url, './');
     // logger.info(`Repository downloaded and extracted to ${filetoDelete}`);
+
+    // Wait for 1 second before reading the files
+    // This is to make sure the files are extracted before reading them
+    setTimeout(() => {}, 2000);
 
     // Call the function to read all the files in the directory
     // Use './' to read the current directory
@@ -288,13 +270,12 @@ async function test_RampUp(url) {
     console.log(`Ramp up score for ${url}: ${score}`);
     return score;
 }
-
- async function getRampUp(ownerName, repoName, token) {
+ export async function getRampUp(ownerName: string, repoName: string, token: string) {
     try {
         const filetoDelete = await downloadGitHubRepo(repoName, './');
         const dirPath = path.join(__dirname, './');
         const files = readFiles(dirPath);
-        var score = await checkSections(files);
+        var score = checkSections(files);
         setTimeout(() => {
             deleteFolder(filetoDelete);
         }
@@ -307,6 +288,7 @@ async function test_RampUp(url) {
         return null;
     }
 }
-
-test_RampUp("https://github.com/cloudinary/cloudinary_npm");
+// test_RampUp("https://github.com/cloudinary/cloudinary_npm");
 // test_RampUp("https://github.com/octocat/Hello-World/");
+// test_RampUp("https://github.com/nullivex/nodist");
+// test_RampUp("https://github.com/lodash/lodash");
