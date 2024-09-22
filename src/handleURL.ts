@@ -1,8 +1,7 @@
-//Please note you will need 'npm install axios'
 import axios from 'axios';
 
 //This function takes in a github repo URL and returns the owner's name and repo's name
-function gitURL(url: string): { owner:string; repo:string} | null {
+export function gitURL(url: string): { owner:string; repo:string} | null {
     url = url.replace(/\.git$/,'');
     const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
     const match = url.match(regex);
