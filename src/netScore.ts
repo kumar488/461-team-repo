@@ -55,7 +55,7 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const netScoreStart = Date.now();
 
         //Get Ramp Up Metric Score and Latency
-        const rampUp = await getRampUp(owner, repo, TOKEN);
+        const rampUp = await getRampUp(owner, url, TOKEN);
         const rampUpEnd = Date.now();
         if (rampUp === null) {
             logger.debug('Error getting Ramp Up metric score');
