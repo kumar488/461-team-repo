@@ -50,18 +50,18 @@ describe('calculateBusFactor', () => {
         const bf_score = calculateBusFactor(minAcceptableContributors, maxAcceptableContributors, numContributors);
         expect(bf_score).toBe(0.1);
     });
-    it('should return null if inputs are invalid', async () => {
+    it('getNumContributors should return null if inputs are invalid', async () => {
         const owner = 'invalidOwner';
         const repo = 'invalidRepo';
         const token = 'invalidToken';
-        const numContributors = getNumContributors(owner, repo, token);
+        const numContributors = await getNumContributors(owner, repo, token);
         expect(numContributors).toBeNull();
     });
-    it('should return null if inputs are invalid', async () => {
+    it('getBusFactor should return null if inputs are invalid', async () => {
         const owner = 'invalidOwner';
         const repo = 'invalidRepo';
         const token = 'invalidToken';
-        const busFactor = getBusFactor(owner, repo, token);
+        const busFactor = await getBusFactor(owner, repo, token);
         expect(busFactor).toBeNull();
     });
 });
