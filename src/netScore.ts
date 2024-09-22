@@ -6,8 +6,6 @@ import {getResponsiveMaintainer} from './responsiveMaintainer'
 import {getLicense} from './license'
 import logger from './logger';
 import * as fs from 'fs';
-import * as dotenv from 'dotenv';
-dotenv.config();
 
 export async function RunProject(inputFilePath: string) {
     const TOKEN: string = process.env.GITHUB_TOKEN || '';
@@ -61,51 +59,57 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const netScoreStart = Date.now();
 
         //Get Ramp Up Metric Score and Latency
-        const rampUp = await getRampUp(owner, url, TOKEN);
+        let rampUp = await getRampUp(owner, url, TOKEN);
         const rampUpEnd = Date.now();
         if (rampUp === null) {
             logger.debug('Error getting Ramp Up metric score');
-            return null;
+            // return null;
+            rampUp = -1;
         }
 
         //Get Correctness Metric Score and Latency
-        const correctness = await getCorrectness(owner, repo, TOKEN);
+        let correctness = await getCorrectness(owner, repo, TOKEN);
         const correctnessEnd = Date.now();
         if (correctness === null) {
             logger.debug('Error getting Correctness metric score');
-            return null;
+            // return null;
+            correctness = -1;
         }
 
         //Get Bus Factor Metric Score and Latency
-        const busFactor = await getBusFactor(owner, repo, TOKEN);
+        let busFactor = await getBusFactor(owner, repo, TOKEN);
         const busFactorEnd = Date.now();
         if (busFactor === null) {
             logger.debug('Error getting Bus Factor metric score');
-            return null;
+            // return null;
+            busFactor = -1;
         }
 
         //Get Responsive Maintainer Metric Score and Latency
-        const responsiveMaintainer = await getResponsiveMaintainer(owner, repo, TOKEN);
+        let responsiveMaintainer = await getResponsiveMaintainer(owner, repo, TOKEN);
         const responsiveMaintainerEnd = Date.now();
         if (responsiveMaintainer === null) {
             logger.debug('Error getting Responsive Maintainer metric score');
-            return null;
+            // return null;
+            responsiveMaintainer = -1;
         }
 
         //Get License Metric Score and Latency
-        const license = await getLicense(owner, repo);
+        let license = await getLicense(owner, repo);
         const licenseEnd = Date.now();
         if (license === null) {
             logger.debug('Error getting License metric score');
-            return null;
+            // return null;
+            license = -1;
         }
 
         //Net Score Calculation and Latency
-        const netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
+        let netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
         const netScoreEnd = Date.now();
         if (netScore === null) {
             logger.debug('Error computing Net Score');
-            return null;
+            // return null;
+            netScore = -1;
         }
         logger.info(`Net Score for ${owner}/${repo}: ${netScore}`);
 
@@ -122,17 +126,17 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         //Output Results
         const output_data = {
             URL: url,
-            NetScore: netScore,
+            NetScore: netScore.toFixed(1),
             NetScore_Latency: netScoreLatency,
-            RampUp: rampUp,
+            RampUp: rampUp.toFixed(1),
             RampUp_Latency: rampUpLatency,
-            Correctness: correctness,
+            Correctness: correctness.toFixed(1),
             Correctness_Latency: correctnessLatency,
-            BusFactor: busFactor,
+            BusFactor: busFactor.toFixed(1),
             BusFactor_Latency: busFactorLatency,
-            ResponsiveMaintainer: responsiveMaintainer,
+            ResponsiveMaintainer: responsiveMaintainer.toFixed(1),
             ResponsiveMaintainer_Latency: responsiveMaintainerLatency,
-            License: license,
+            License: license.toFixed(1),
             License_Latency: licenseLatency
         }
         const json_output = JSON.stringify(output_data, null, 2);
@@ -160,8 +164,28 @@ export function calculateNetScore(rampUp: number, correctness: number, busFactor
     //Handle Edge Cases: Validate Arguments
     if (rampUp < 0 || rampUp > 1 || correctness < 0 || correctness > 1 || busFactor < 0 || busFactor > 1 || 
     responsiveMaintainer < 0 || responsiveMaintainer > 1 || license < 0 || license > 1) {
-        logger.debug(`Invalid Arguments: Arguments must be between 0 and 1`);
-        return null;
+        if (rampUp === -1 || correctness === -1 || busFactor === -1 || responsiveMaintainer === -1 || license === -1) {
+            if (rampUp === -1) {
+                rampUp = 0;
+            }
+            if (correctness === -1) {
+                correctness = 0;
+            }
+            if (busFactor === -1) {
+                busFactor = 0;
+            }
+            if (responsiveMaintainer === -1) {
+                responsiveMaintainer = 0;
+            }
+            if (license === -1) {
+                license = 0;
+            }
+        }
+        if (rampUp < 0 || rampUp > 1 || correctness < 0 || correctness > 1 || busFactor < 0 || busFactor > 1 || 
+            responsiveMaintainer < 0 || responsiveMaintainer > 1 || license < 0 || license > 1) {
+            logger.debug(`Invalid Arguments: Arguments must be between 0 and 1`);
+            return null;
+        }
     }
 
     const netScore = (0.20*rampUp + 0.30*correctness + 0.20*busFactor + 0.30*responsiveMaintainer) * license;
