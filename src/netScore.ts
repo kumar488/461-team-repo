@@ -66,7 +66,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const rampUpEnd = Date.now();
         if (rampUp === null) {
             logger.debug('Error getting Ramp Up metric score');
-            // return null;
             rampUp = -1;
         }
 
@@ -75,7 +74,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const correctnessEnd = Date.now();
         if (correctness === null) {
             logger.debug('Error getting Correctness metric score');
-            // return null;
             correctness = -1;
         }
 
@@ -84,7 +82,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const busFactorEnd = Date.now();
         if (busFactor === null) {
             logger.debug('Error getting Bus Factor metric score');
-            // return null;
             busFactor = -1;
         }
 
@@ -93,7 +90,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const responsiveMaintainerEnd = Date.now();
         if (responsiveMaintainer === null) {
             logger.debug('Error getting Responsive Maintainer metric score');
-            // return null;
             responsiveMaintainer = -1;
         }
 
@@ -102,7 +98,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const licenseEnd = Date.now();
         if (license === null) {
             logger.debug('Error getting License metric score');
-            // return null;
             license = -1;
         }
 
@@ -111,7 +106,6 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const netScoreEnd = Date.now();
         if (netScore === null) {
             logger.debug('Error computing Net Score');
-            // return null;
             netScore = -1;
         }
         logger.info(`Net Score for ${owner}/${repo}: ${netScore}`);

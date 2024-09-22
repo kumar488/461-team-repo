@@ -49,7 +49,7 @@ describe('calculateNetScore', () => {
     it('should return 0 if none of the urls in the batch are valid', async () => {
         const token = 'invalidToken';
         const url_batch = ['invalidUrl1', 'invalidUrl2', 'invalidUrl3', 'invalidUrl4', 'invalidUrl5'];
-        const netScore = await processBatch(url_batch, token);
-        expect(netScore).toBe(0);
+        const numURLprocessed = await processBatch(url_batch, token);
+        expect(numURLprocessed).toBe(0);
     });
 });
