@@ -1,6 +1,7 @@
 import axios from 'axios';
 import logger from './logger';
 
+//Get Number of Contributors from a Given Repository
 export async function getNumContributors(owner: string, repo: string, token: string){
     try {
       logger.debug(`Fetching contributors for ${owner}/${repo}`);
@@ -23,6 +24,7 @@ export async function getNumContributors(owner: string, repo: string, token: str
     }
 }
 
+//Calculate Bus Factor Score
 export function calculateBusFactor(minAcceptableContributors: number, maxAcceptableContributors: number, numContributors: number){
     // Handle Edge Cases: Validate Arguments
     if (minAcceptableContributors < 0 || maxAcceptableContributors < 0 || numContributors < 0) {
@@ -49,6 +51,7 @@ export function calculateBusFactor(minAcceptableContributors: number, maxAccepta
     return busFactor;
 }
 
+//Outer Function to get Bus Factor
 export async function getBusFactor(owner: string, repo: string, token: string){
   try {
     const numContributors = await getNumContributors(owner, repo, token);
