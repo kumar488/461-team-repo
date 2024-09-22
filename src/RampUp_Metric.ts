@@ -185,7 +185,7 @@ async function downloadGitHubRepo(repoUrl: string, destinationFolder: string) {
 function readFiles(dirPath: string) {
     var files = fs.readdirSync(dirPath);
     // console.log(`Reading files from ${dirPath}`);
-    logger.info(`Reading files from ${dirPath}`);
+    // logger.info(`Reading files from ${dirPath}`);
 
     // Read current directory and check if README.md exists
     if (files.includes('README.md')) {
@@ -267,18 +267,15 @@ export async function test_RampUp(url: string) {
     // Use './' to read the current directory
     // Use '../' to read the parent directory
     // Temporary Local Folder: ./temp_repo
-    const dirPath = path.join(__dirname, './');
-    const files = await readFiles(dirPath);
+    const dirPath = path.join(__dirname, '../');
+    const files = readFiles(dirPath);
 
     // If "false" is returned, no README.md was found, score is 0
     var score = checkSections(files);
 
-    setTimeout(() => {
-        // Call the function to delete the repository from the local machine
-        deleteFolder(filetoDelete);
-    }
-    , 1000);
-
+    // Delete the repository from the local machine
+    await deleteFolder(filetoDelete);
+    
     logger.info(`Ramp up score for ${url}: ${score}`);
     // console.log(`Ramp up score for ${url}: ${score}`);
     return score;
@@ -286,18 +283,16 @@ export async function test_RampUp(url: string) {
 export async function getRampUp(ownerName: string, repoName: string, token: string) {
     try {
         const filetoDelete = await downloadGitHubRepo(repoName, './');
-        const dirPath = path.join(__dirname, './');
+        const dirPath = path.join(__dirname, '../');
         const files = readFiles(dirPath);
         var score = checkSections(files);
-        setTimeout(() => {
-            deleteFolder(filetoDelete);
-        }
-        , 1000);
-
-        // logger.info(`Ramp up score for ${ownerName}/${repoName}: ${score}`);
+        
+        await deleteFolder(filetoDelete);
+       
+        logger.info(`Ramp up score for ${ownerName}/${repoName}: ${score}`);
         return score;
     } catch (error) {
-        // logger.info('Error fetching and calculating ramp up score');
+        logger.info('Error fetching and calculating ramp up score');
         return null;
     }
 }
