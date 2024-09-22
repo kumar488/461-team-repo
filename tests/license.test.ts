@@ -1,10 +1,47 @@
-import { getLicense, checkLicenseCompatibility, deleteRepo, cloneRepo } from '../src/license'; // Import your getLicense function
+import { getLicense, checkLicenseCompatibility} from '../src/license'; // Import your getLicense function
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
 
 describe('getLicense', () => {
-    jest.setTimeout(240000); //set timeout to 60 seconds
+    jest.setTimeout(30000); // Increase timeout for the test
+    let mock: MockAdapter;
+
+    beforeAll(() => {
+        // Create a new axios mock adapter instance
+        mock = new MockAdapter(axios);
+    });
+
+    afterEach(() => {
+        // Reset the mock adapter after each test to avoid test interference
+        mock.reset();
+    });
+
+    afterAll(() => {
+        // Restore axios after all tests are done
+        mock.restore();
+    });
+
+    it('should return 1 if a compatible license is found in the LICENSE file', async () => {
+        const ownerName = 'test-owner';
+        const repoName = 'test-repo';
+        const defaultBranch = 'main';
+
+        // Mock the GitHub API to return the default branch
+        mock.onGet(`https://api.github.com/repos/${ownerName}/${repoName}`).reply(200, {
+            default_branch: defaultBranch
+        });
+
+        // Mock the raw.githubusercontent.com API to return a compatible license file
+        mock.onGet(`https://raw.githubusercontent.com/${ownerName}/${repoName}/${defaultBranch}/LICENSE`).reply(200, 'GNU Lesser General Public License v2.1');
+
+        const result = await getLicense(ownerName, repoName);
+
+        // Check if it returns 1 for a compatible license
+        expect(result).toBe(1);
+    });
 
     it('should return true for LGPLv2.1', () => {
         const content = 'GNU Lesser General Public License v2.1';
@@ -52,22 +89,6 @@ describe('getLicense', () => {
         const content = 'Proprietary License';
         const result = checkLicenseCompatibility(content);
         expect(result).toBe(false);
-    });
-
-    it('should throw an error when given invalid repo', async () => {
-        const invalidRepo = 'invalidRepo';
-        const invalidOwner = 'invalidOwner';
-
-        await expect(cloneRepo(invalidOwner, invalidRepo))
-          .rejects
-          .toThrow(); 
-    });
-
-    it('should run without throwing an error', async () => {
-        const repoName = 'repo';
-
-        // Call deleteRepo and check if it resolves without throwing an error
-        await expect(deleteRepo(repoName)).resolves.not.toThrow();
     });
 
 });

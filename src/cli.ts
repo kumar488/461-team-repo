@@ -18,7 +18,7 @@ program
     .description('Install dependencies')
     .action(async () => {
         logger.info("Installing dependencies...");
-        const modules = ['jest', 'axios', 'dotenv', 'commander', 'winston']; //List of modules to install
+        const modules = ['jest', 'axios', 'dotenv', 'commander', 'winston', 'axios-mock-adapter']; //List of modules to install
         const modulesString = modules.join(' '); //Convert the list to a string
         try {
             const {stdout, stderr} = await execAsync('npm install ' + modulesString); //Run npm install
