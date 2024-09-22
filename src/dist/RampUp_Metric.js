@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -34,31 +35,20 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var _this = this;
+exports.__esModule = true;
+exports.getRampUp = exports.test_RampUp = void 0;
+var logger_1 = require("./logger");
 var fs = require('fs');
 var path = require('path');
 var AdmZip = require('adm-zip');
+var axios = require('axios');
 // Placeholder for the GitHub token
 var GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN';
 // If authentication is not needed, set Authorization_Needed to false
 // If authentication is needed, set Authorization_Needed to true
 var Authorization_Needed = false;
-(function () { return __awaiter(_this, void 0, void 0, function () {
-    var fetch;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, Promise.resolve().then(function () { return require('node-fetch'); })];
-            case 1:
-                fetch = (_a.sent())["default"];
-                // Now you can use fetch
-                fetch('https://api.github.com')
-                    .then(function (response) { return response.json(); })
-                    .then(function (data) { return console.log(data); })["catch"](function (error) { return console.error('Error:', error); });
-                return [2 /*return*/];
-        }
-    });
-}); })();
-// Import the adm-zip module
+logger_1["default"].info("Currently, Authorization Needed is set to: " + Authorization_Needed);
+logger_1["default"].info("If authorization is needed, please set the GITHUB_TOKEN at the top of the file and Authorization_Needed to true.");
 // Milestone: 3
 // Task 2:  - Implement Ramp-Up Metric
 //          - Create Unit Test Cases
@@ -114,7 +104,8 @@ score = (actual number of sections) / (expected number of sections)
 
 */
 // Expected number of sections
-var expectedSections = 20;
+var expectedSections = 26;
+logger_1["default"].info("Expected number of sections: " + expectedSections);
 // Function to get the default branch of a GitHub repository
 // Needed to make sure we download the correct branch
 // Because SOME people decide to use names other than 'main'
@@ -128,7 +119,7 @@ function getDefaultBranch(repoUrl) {
                     _a = urlParts.pathname.split('/').filter(Boolean), username = _a[0], repo = _a[1];
                     apiUrl = "https://api.github.com/repos/" + username + "/" + repo;
                     if (!Authorization_Needed) return [3 /*break*/, 2];
-                    return [4 /*yield*/, fetch(apiUrl, {
+                    return [4 /*yield*/, axios.get(apiUrl, {
                             headers: {
                                 'Authorization': "token " + GITHUB_TOKEN
                             }
@@ -136,7 +127,7 @@ function getDefaultBranch(repoUrl) {
                 case 1:
                     response = _b.sent();
                     return [3 /*break*/, 4];
-                case 2: return [4 /*yield*/, fetch(apiUrl)];
+                case 2: return [4 /*yield*/, axios.get(apiUrl)];
                 case 3:
                     response = _b.sent();
                     _b.label = 4;
@@ -157,23 +148,40 @@ function getDefaultBranch(repoUrl) {
 // Function to downloads a GitHub repository as a zip and extracts it to the specified directory.
 function downloadGitHubRepo(repoUrl, destinationFolder) {
     return __awaiter(this, void 0, void 0, function () {
-        var defaultBranch, repoZipUrl, response, buffer, zipFilePath, zip, error_1;
+        var defaultBranch, urlParts, repoName, pathDefaultBranch, repoZipUrl, response, buffer, zipFilePath, zip, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 4, , 5]);
-                    return [4 /*yield*/, getDefaultBranch(repoUrl)];
+                    if (repoUrl == null) {
+                        logger_1["default"].debug('Repository URL is null');
+                        return [2 /*return*/];
+                    }
+                    else if (destinationFolder == null) {
+                        logger_1["default"].debug('Destination folder is null');
+                        return [2 /*return*/];
+                    }
+                    else if (repoUrl == "Skip") {
+                        // Skip the download
+                        return [2 /*return*/];
+                    }
+                    _a.label = 1;
                 case 1:
-                    defaultBranch = _a.sent();
-                    repoZipUrl = repoUrl + "/archive/refs/heads/" + defaultBranch + ".zip";
-                    return [4 /*yield*/, fetch(repoZipUrl)];
+                    _a.trys.push([1, 5, , 6]);
+                    return [4 /*yield*/, getDefaultBranch(repoUrl)];
                 case 2:
+                    defaultBranch = _a.sent();
+                    urlParts = new URL(repoUrl);
+                    repoName = urlParts.pathname.split('/').filter(Boolean).pop();
+                    pathDefaultBranch = "./" + repoName + "-" + defaultBranch;
+                    repoZipUrl = repoUrl + "/archive/refs/heads/" + defaultBranch + ".zip";
+                    return [4 /*yield*/, axios.get(repoZipUrl)];
+                case 3:
                     response = _a.sent();
                     if (!response.ok) {
                         throw new Error("Failed to download repository: " + response.statusText);
                     }
                     return [4 /*yield*/, response.arrayBuffer()];
-                case 3:
+                case 4:
                     buffer = _a.sent();
                     zipFilePath = path.join(destinationFolder, 'repo.zip');
                     fs.writeFileSync(zipFilePath, Buffer.from(buffer));
@@ -181,13 +189,13 @@ function downloadGitHubRepo(repoUrl, destinationFolder) {
                     zip.extractAllTo(destinationFolder, true);
                     // Remove the zip file after extraction
                     fs.unlinkSync(zipFilePath);
-                    console.log("Repository downloaded and extracted to " + destinationFolder);
-                    return [3 /*break*/, 5];
-                case 4:
+                    logger_1["default"].info("Repository downloaded and extracted to " + destinationFolder);
+                    return [2 /*return*/, pathDefaultBranch];
+                case 5:
                     error_1 = _a.sent();
-                    console.error("Error downloading repository: " + error_1);
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/];
+                    logger_1["default"].debug("Error downloading repository: " + error_1);
+                    return [3 /*break*/, 6];
+                case 6: return [2 /*return*/];
             }
         });
     });
@@ -197,13 +205,12 @@ function downloadGitHubRepo(repoUrl, destinationFolder) {
 // Function to read all the files in a directory
 function readFiles(dirPath) {
     var files = fs.readdirSync(dirPath);
-    // console.log(files);
     // Read current directory and check if README.md exists
     if (files.includes('README.md')) {
         files = ['README.md', dirPath];
     }
     // If README.md does not exist in the current directory, read through all the folders until it is found
-    // If not found, return false (no README.md found)
+    // If not found, return 'false' (no README.md found)
     else {
         for (var _i = 0, files_1 = files; _i < files_1.length; _i++) {
             var file = files_1[_i];
@@ -212,7 +219,7 @@ function readFiles(dirPath) {
             if (stat.isDirectory()) {
                 files = readFiles(filePath);
                 if (files.includes('README.md') == false) {
-                    files = false;
+                    files = "false";
                 }
             }
         }
@@ -224,14 +231,18 @@ function readFiles(dirPath) {
 // If it does not, do nothing
 // Return the score
 function checkSections(files) {
-    console.log(files);
-    // Find the index of README.md
-    // Read the README.md file
+    // If files doesn't exist, return 0
+    if (files) {
+        return 0;
+    }
+    // If README.md wasn't found, return 0
+    else if (files == "false") {
+        return 0;
+    }
     var content = fs.readFileSync(path.join(files[1], files[0]), 'utf8');
-    console.log(content);
     var score = 0;
     var sections = ['Table of Contents', 'Table of contents', 'Installation', 'Examples', 'Troubleshooting',
-        'FAQ', 'Key features', 'Key features', 'Features', 'Version Support', 'Version support',
+        'FAQ', 'Key Features', 'Key features', 'Features', 'Version Support', 'Version support',
         'Support', 'Usage', 'License', 'Known Issues', 'Known issues', 'Commands', 'Setup',
         'Getting Started', 'Getting started', 'Settings', 'Configuration', 'Dependencies', 'Roadmap',
         'Development', 'Debugging', 'Testing', 'Details', 'Building', 'Legal', 'Changelog'];
@@ -242,6 +253,7 @@ function checkSections(files) {
         }
     }
     // Return a float between 0 and 1
+    logger_1["default"].info("Ramp up score: " + score / expectedSections);
     return (score / expectedSections);
 }
 // To Do:
@@ -261,30 +273,56 @@ function deleteFolder(folderPath) {
         console.error("Error deleting folder: " + error);
     }
 }
-function test_RampUp() {
-    // Call the function to download the repository from GitHub
-    downloadGitHubRepo('https://github.com/octocat/Hello-World', './');
-    // Call the function to read all the files in the directory
-    // Use './' to read the current directory
-    // Use '../' to read the parent directory
-    // Temporary Local Folder: ./temp_repo
-    var dirPath = path.join(__dirname, './');
-    console.log(dirPath);
-    var files = readFiles(dirPath);
-    // If FALSE is returned, no README.md was found
-    var score;
-    if (files == false) {
-        console.log('No README.md found');
-        score = 0;
-    }
-    else {
-        // Call the function to check if the README.md contains any of the sections mentioned above
-        // Print the score to the terminal
-        score = checkSections(files);
-    }
-    console.log("Score:", score);
-    setTimeout(function () {
-        // Call the function to delete the repository from the local machine
-        deleteFolder('./Hello-World-master');
-    }, 1000);
+function test_RampUp(url) {
+    return __awaiter(this, void 0, void 0, function () {
+        var filetoDelete, dirPath, files, score;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, downloadGitHubRepo(url, './')];
+                case 1:
+                    filetoDelete = _a.sent();
+                    logger_1["default"].info("Repository downloaded and extracted to " + filetoDelete);
+                    dirPath = path.join(__dirname, './');
+                    files = readFiles(dirPath);
+                    score = checkSections(files);
+                    setTimeout(function () {
+                        // Call the function to delete the repository from the local machine
+                        deleteFolder(filetoDelete);
+                    }, 1000);
+                    logger_1["default"].info("Ramp up score for " + url + ": " + score);
+                    return [2 /*return*/, score];
+            }
+        });
+    });
 }
+exports.test_RampUp = test_RampUp;
+function getRampUp(ownerName, repoName, token) {
+    return __awaiter(this, void 0, void 0, function () {
+        var filetoDelete_1, dirPath, files, score, error_2;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, downloadGitHubRepo(repoName, './')];
+                case 1:
+                    filetoDelete_1 = _a.sent();
+                    dirPath = path.join(__dirname, './');
+                    files = readFiles(dirPath);
+                    return [4 /*yield*/, checkSections(files)];
+                case 2:
+                    score = _a.sent();
+                    setTimeout(function () {
+                        deleteFolder(filetoDelete_1);
+                    }, 1000);
+                    logger_1["default"].info("Ramp up score for " + ownerName + "/" + repoName + ": " + score);
+                    return [2 /*return*/, score];
+                case 3:
+                    error_2 = _a.sent();
+                    logger_1["default"].info('Error fetching and calculating ramp up score');
+                    return [2 /*return*/, null];
+                case 4: return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.getRampUp = getRampUp;
