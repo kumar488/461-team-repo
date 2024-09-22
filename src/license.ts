@@ -1,4 +1,3 @@
-import axios from "axios";
 import fs from "fs";
 import path from "path";
 import logger from "./logger";
@@ -49,7 +48,7 @@ export async function getLicense(ownerName: string, repoName: string): Promise<n
 export function checkLicenseCompatibility(content: string) {
     const compatibleLicensesRegex = /LGPLv2\.1|Lesser General Public License v2\.1|GPLv2|General Public License v2|MIT License|BSD 2-Clause License|BSD 3-Clause License|Apache License 2\.0/i;
     const isCompatible = compatibleLicensesRegex.test(content);
-    logger.debug(`License compatibility: ${isCompatible ? 'Compatible' : 'Incompatible'}`);
+    logger.info(`License compatibility: ${isCompatible ? 'Compatible' : 'Incompatible'}`);
     return isCompatible;
 }
 
