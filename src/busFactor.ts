@@ -19,7 +19,7 @@ export async function getNumContributors(owner: string, repo: string, token: str
     }
     catch (error: any) {
       logger.debug(`Error fetching contributors: ${error.message}`);
-      throw error;
+      return null;
     }
 }
 
@@ -52,6 +52,10 @@ export function calculateBusFactor(minAcceptableContributors: number, maxAccepta
 export async function getBusFactor(owner: string, repo: string, token: string){
   try {
     const numContributors = await getNumContributors(owner, repo, token);
+    if (numContributors === null) {
+      logger.error(`Error getting bus factor: Invalid arguments`);
+      return null;
+    }
     const minAcceptableContributors = 10;
     const maxAcceptableContributors = 100;
     const busFactor = calculateBusFactor(minAcceptableContributors, maxAcceptableContributors, numContributors);
