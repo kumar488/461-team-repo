@@ -1,4 +1,4 @@
-import { calculateBusFactor, getNumContributors } from '../src/busFactor';
+import { calculateBusFactor, getNumContributors, getBusFactor } from '../src/busFactor';
 
 describe('calculateBusFactor', () => {
     it('should return null if minAcceptableContributors is negative', async () => {
@@ -56,5 +56,12 @@ describe('calculateBusFactor', () => {
         const token = 'invalidToken';
         const numContributors = getNumContributors(owner, repo, token);
         expect(numContributors).toBeNull();
+    });
+    it('should return null if inputs are invalid', async () => {
+        const owner = 'invalidOwner';
+        const repo = 'invalidRepo';
+        const token = 'invalidToken';
+        const busFactor = getBusFactor(owner, repo, token);
+        expect(busFactor).toBeNull();
     });
 });
