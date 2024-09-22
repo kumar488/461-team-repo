@@ -7,6 +7,7 @@ import {getLicense} from './license'
 import logger from './logger';
 import * as fs from 'fs';
 
+//Main Function to Run Project
 export async function RunProject(inputFilePath: string) {
     const TOKEN: string = process.env.GITHUB_TOKEN || '';
     const inputfile = fs.readFileSync(inputFilePath, 'utf-8');
@@ -27,6 +28,7 @@ export async function RunProject(inputFilePath: string) {
     }
 }
 
+//Process Batch of URLs (5 URLs at a time)
 export async function processBatch(url_batch: string[], TOKEN: string) {
     let urls_processed = 0;
     for (const url of url_batch) {
@@ -51,6 +53,7 @@ export async function processBatch(url_batch: string[], TOKEN: string) {
     return urls_processed/url_batch.length;
 }
 
+//Get Net Score for a Single URL
 export async function getNetScore(url:string, owner:string, repo:string, TOKEN: string) {
     logger.debug(`Calculating Net Score for ${owner}/${repo}`);
 
@@ -123,7 +126,7 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
 
         logger.info(`Net Score Latency: ${netScoreLatency} seconds`);
 
-        //Output Results
+        //Construct Output Data
         const output_data = {
             URL: url,
             NetScore: netScore.toFixed(1),
@@ -140,18 +143,7 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
             License_Latency: licenseLatency
         }
         const json_output = JSON.stringify(output_data, null, 2);
-        //Write Output to File
-        // fs.writeFile('./output.json', json_output, (error) => {
-        //     if (error) {
-        //         logger.debug('Error writing output to file');
-        //         return null;
-        //     }
-        //     else {
-        //         logger.info('Output written to file');
-        //         return 1;
-        //     }
-        // });
-        //Write Output to Console
+        //Print Output Data to Stdout
         console.log(json_output);
     }
     catch (error) {
@@ -160,34 +152,33 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
     }
 }
 
+//Calculate Net Score Number
 export function calculateNetScore(rampUp: number, correctness: number, busFactor: number, responsiveMaintainer: number, license: number) {
-    //Handle Edge Cases: Validate Arguments
-    if (rampUp < 0 || rampUp > 1 || correctness < 0 || correctness > 1 || busFactor < 0 || busFactor > 1 || 
-    responsiveMaintainer < 0 || responsiveMaintainer > 1 || license < 0 || license > 1) {
-        if (rampUp === -1 || correctness === -1 || busFactor === -1 || responsiveMaintainer === -1 || license === -1) {
-            if (rampUp === -1) {
-                rampUp = 0;
-            }
-            if (correctness === -1) {
-                correctness = 0;
-            }
-            if (busFactor === -1) {
-                busFactor = 0;
-            }
-            if (responsiveMaintainer === -1) {
-                responsiveMaintainer = 0;
-            }
-            if (license === -1) {
-                license = 0;
-            }
+    //Handle Edge Cases: Metric Scoring Error Handling (ignore metric if error)
+    if (rampUp === -1 || correctness === -1 || busFactor === -1 || responsiveMaintainer === -1 || license === -1) {
+        if (rampUp === -1) {
+            rampUp = 0;
         }
-        if (rampUp < 0 || rampUp > 1 || correctness < 0 || correctness > 1 || busFactor < 0 || busFactor > 1 || 
-            responsiveMaintainer < 0 || responsiveMaintainer > 1 || license < 0 || license > 1) {
-            logger.debug(`Invalid Arguments: Arguments must be between 0 and 1`);
-            return null;
+        if (correctness === -1) {
+            correctness = 0;
+        }
+        if (busFactor === -1) {
+            busFactor = 0;
+        }
+        if (responsiveMaintainer === -1) {
+            responsiveMaintainer = 0;
+        }
+        if (license === -1) {
+            license = 0;
         }
     }
-
+    //Handle Edge Cases: Validate Arguments
+    if (rampUp < 0 || rampUp > 1 || correctness < 0 || correctness > 1 || busFactor < 0 || busFactor > 1 || 
+        responsiveMaintainer < 0 || responsiveMaintainer > 1 || license < 0 || license > 1) {
+        logger.debug(`Invalid Arguments: Arguments must be between 0 and 1`);
+        return null;
+    }
+    //Perform Net Score Calculation
     const netScore = (0.20*rampUp + 0.30*correctness + 0.20*busFactor + 0.30*responsiveMaintainer) * license;
     return netScore;
 }
