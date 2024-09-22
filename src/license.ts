@@ -2,92 +2,67 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import logger from "./logger";
-import util from "util";
-import { exec } from "child_process";
 
-const execAsync = util.promisify(exec);
-
-export async function getLicense(ownerName: string, repoName: string): Promise<number> {
-    let cloneDir = '';
-
+export async function getLicense(ownerName: string, repoName: string) {
     try {
-        // Clone the repository into the licenseRepos folder
-        cloneDir = await cloneRepo(ownerName, repoName);
+        // First, determine the default branch of the repository
+        const defaultBranch = await getDefaultBranch(ownerName, repoName);
 
-        // Check for LICENSE file
-        const licensePath = path.join(cloneDir, 'LICENSE');
-        if (fs.existsSync(licensePath)) {
-            const licenseContent = fs.readFileSync(licensePath, 'utf-8');
-            logger.debug(`LICENSE file found for ${ownerName}/${repoName}`);
-            return checkLicenseCompatibility(licenseContent) ? 1 : 0;
+        const licenseContent = await downloadFileFromRepo(ownerName, repoName, 'LICENSE', defaultBranch);
+
+        if (licenseContent && checkLicenseCompatibility(licenseContent)) {
+            logger.debug('Compatible license found in LICENSE file');
+            return 1;
         }
 
-        // Check for README.md file
-        const readmePath = path.join(cloneDir, 'README.md');
-        if (fs.existsSync(readmePath)) {
-            const readmeContent = fs.readFileSync(readmePath, 'utf-8');
-            logger.debug(`README.md file found for ${ownerName}/${repoName}`);
-            return checkLicenseCompatibility(readmeContent) ? 1 : 0;
+        const readmeContent = await downloadFileFromRepo(ownerName, repoName, 'README.md', defaultBranch);
+
+        if (readmeContent && checkLicenseCompatibility(readmeContent)) {
+            logger.debug('Compatible license found in README.md file');
+            return 1;
         }
 
-        // If neither file is found, return 0 (incompatible)
-        logger.debug(`No LICENSE or README.md file found for ${ownerName}/${repoName}`);
+        logger.debug('No compatible license found');
         return 0;
-
     } catch (error: any) {
-        logger.info('Error occurred while getting license');
-        logger.debug(`Error details: ${error.message}`);
-        return 0;
-    } finally {
-        // Clean up the cloned repository
-        if (cloneDir) {
-            await deleteRepo(repoName); // Pass repoName to deleteRepo, not cloneDir
-        }
+        logger.debug(`Error fetching license: ${error.message}`);
+        return null;
+    }
+}
+
+async function getDefaultBranch(ownerName: string, repoName: string): Promise<string> {
+    const repoUrl = `https://api.github.com/repos/${ownerName}/${repoName}`;
+    try {
+        const response = await axios.get(repoUrl);
+        const defaultBranch = response.data.default_branch;
+        logger.debug(`Default branch for ${ownerName}/${repoName}: ${defaultBranch}`);
+        return defaultBranch;
+    } catch (error: any) {
+        logger.debug(`Error fetching default branch: ${error.message}`);
+        throw new Error('Failed to retrieve default branch');
+    }
+}
+
+async function downloadFileFromRepo(ownerName: string, repoName: string, fileName: string, branch: string = 'main') {
+    const url = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${branch}/${fileName}`;
+    try {
+        const response = await axios.get(url);
+        logger.debug(`${fileName} File downloaded successfully`);
+        return response.data;
+    } catch (error : any) {
+        logger.debug(`Error downloading ${fileName}: ${error.message}`);
+        return null;
     }
 }
 
 export function checkLicenseCompatibility(content: string) {
-    const compatibleLicensesRegex = /LGPLv2\.1|Lesser General Public License v2\.1|GPLv2|General Public License v2|MIT License|BSD 2-Clause License|BSD 3-Clause License|Apache License 2\.0/i;
-    const isCompatible = compatibleLicensesRegex.test(content);
+    // Convert content to lowercase to ensure case-insensitivity
+    const lowerCaseContent = content.toLowerCase();
+
+    const compatibleLicensesRegex = /lgplv2\.1|lesser general public license v2\.1|gplv2|general public license v2|mit license|bsd 2-clause license|bsd 3-clause license|apache license 2\.0/;
+    
+    const isCompatible = compatibleLicensesRegex.test(lowerCaseContent);
     logger.debug(`License compatibility: ${isCompatible ? 'Compatible' : 'Incompatible'}`);
+    
     return isCompatible;
-}
-
-// Function to clone a GitHub repo
-export async function cloneRepo(ownerName: string, repoName: string): Promise<string> {
-    const repoUrl = `https://github.com/${ownerName}/${repoName}.git`;
-    const licenseReposDir = path.join(__dirname, 'licenseRepos');
-    const cloneDir = path.join(licenseReposDir, repoName);
-
-    try {
-        // Ensure the licenseRepos directory exists, if not, create it
-        if (!fs.existsSync(licenseReposDir)) {
-            fs.mkdirSync(licenseReposDir);
-            logger.info(`Created directory: ${licenseReposDir}`);
-        }
-
-        logger.debug(`Cloning repository from ${repoUrl} into ${cloneDir}...`);
-        await execAsync(`git clone --no-checkout ${repoUrl} ${cloneDir}`);
-        await execAsync(`cd ${cloneDir} && git sparse-checkout init --cone`);
-        await execAsync(`cd ${cloneDir} && git sparse-checkout set LICENSE README.md`);
-        await execAsync(`cd ${cloneDir} && git checkout`);
-        logger.info(`Repository cloned successfully to ${cloneDir}`);
-        return cloneDir;
-    } catch (error: any) {
-        logger.info(`Error cloning repository: ${error.message}`);
-        throw error;
-    }
-}
-
-export async function deleteRepo(repoName: string) {
-    const cloneDir = path.join(__dirname, 'licenseRepos', repoName);
-
-    try {
-        logger.debug(`Deleting cloned repository at ${cloneDir}...`);
-        await fs.promises.rm(cloneDir, { recursive: true, force: true });
-        logger.info(`Repository deleted successfully at ${cloneDir}`);
-    } catch (error: any) {
-        logger.info(`Error deleting repository: ${error.message}`);
-        throw error;
-    }
 }

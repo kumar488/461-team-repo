@@ -111,8 +111,6 @@ describe('calculateResponsiveMaintainer Tests', () => {
     });
 
     it('should return a score', async () => {
-        config();
-
         const repoName = 'react';
         const ownerName = 'facebook';
         const token = process.env.GITHUB_TOKEN || '';

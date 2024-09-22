@@ -1,6 +1,7 @@
 import axios from 'axios';
 import logger from './logger';
 
+//Get Number of Contributors from a Given Repository
 export async function getNumContributors(owner: string, repo: string, token: string){
     try {
       logger.debug(`Fetching contributors for ${owner}/${repo}`);
@@ -19,10 +20,11 @@ export async function getNumContributors(owner: string, repo: string, token: str
     }
     catch (error: any) {
       logger.debug(`Error fetching contributors: ${error.message}`);
-      throw error;
+      return null;
     }
 }
 
+//Calculate Bus Factor Score
 export function calculateBusFactor(minAcceptableContributors: number, maxAcceptableContributors: number, numContributors: number){
     // Handle Edge Cases: Validate Arguments
     if (minAcceptableContributors < 0 || maxAcceptableContributors < 0 || numContributors < 0) {
@@ -49,9 +51,14 @@ export function calculateBusFactor(minAcceptableContributors: number, maxAccepta
     return busFactor;
 }
 
+//Outer Function to get Bus Factor
 export async function getBusFactor(owner: string, repo: string, token: string){
   try {
     const numContributors = await getNumContributors(owner, repo, token);
+    if (numContributors === null) {
+      logger.error(`Error getting bus factor: Invalid arguments`);
+      return null;
+    }
     const minAcceptableContributors = 10;
     const maxAcceptableContributors = 100;
     const busFactor = calculateBusFactor(minAcceptableContributors, maxAcceptableContributors, numContributors);
