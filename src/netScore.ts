@@ -35,7 +35,7 @@ export async function processBatch(url_batch: string[], TOKEN: string) {
         const repoinfo = await handleURL(url);
         if (!repoinfo) {
             logger.debug("Error: URL not compatible. Please enter github.com or npmjs.com URL\n");
-            return null;
+            continue;
         }
         else {
             const owner = repoinfo['owner'];
@@ -145,6 +145,8 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const json_output = JSON.stringify(output_data, null, 2);
         //Print Output Data to Stdout
         console.log(json_output);
+        netScore = Math.round(netScore*10)/10;
+        return netScore;
     }
     catch (error) {
         logger.debug(`Error calculating Net Score for ${owner}/${repo}`);
