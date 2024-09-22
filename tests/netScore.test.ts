@@ -38,7 +38,6 @@ describe('calculateNetScore', () => {
         expect(netScore).toBe(0);
     });
     it('should return score if inputs are valid', async () => {
-        jest.setTimeout(300000); // Set timeout to 30 seconds
         const owner = 'lodash';
         const repo = 'lodash';
         const token = process.env.GITHUB_TOKEN || '';
