@@ -38,7 +38,6 @@ describe('calculateNetScore', () => {
         expect(netScore).toBe(0);
     });
     it('should return score if inputs are valid', async () => {
-        jest.setTimeout(300000); // Set timeout to 30 seconds
         const owner = 'lodash';
         const repo = 'lodash';
         const token = process.env.GITHUB_TOKEN || '';
@@ -50,7 +49,7 @@ describe('calculateNetScore', () => {
     it('should return 0 if none of the urls in the batch are valid', async () => {
         const token = 'invalidToken';
         const url_batch = ['invalidUrl1', 'invalidUrl2', 'invalidUrl3', 'invalidUrl4', 'invalidUrl5'];
-        const netScore = await processBatch(url_batch, token);
-        expect(netScore).toBe(0);
+        const numURLprocessed = await processBatch(url_batch, token);
+        expect(numURLprocessed).toBe(0);
     });
 });
