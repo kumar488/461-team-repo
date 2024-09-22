@@ -55,7 +55,7 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         const netScoreStart = Date.now();
 
         //Get Ramp Up Metric Score and Latency
-        const rampUp = await getRampUp(owner, repo, TOKEN);
+        const rampUp = await getRampUp(owner, url, TOKEN);
         const rampUpEnd = Date.now();
         if (rampUp === null) {
             logger.debug('Error getting Ramp Up metric score');
@@ -87,7 +87,7 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         }
 
         //Get License Metric Score and Latency
-        const license = await getLicense(owner, repo, TOKEN);
+        const license = await getLicense(owner, repo);
         const licenseEnd = Date.now();
         if (license === null) {
             logger.debug('Error getting License metric score');
@@ -130,16 +130,19 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
             License_Latency: licenseLatency
         }
         const json_output = JSON.stringify(output_data, null, 2);
-        fs.writeFile('./output.json', json_output, (error) => {
-            if (error) {
-                logger.debug('Error writing output to file');
-                return null;
-            }
-            else {
-                logger.info('Output written to file');
-                return 1;
-            }
-        });
+        //Write Output to File
+        // fs.writeFile('./output.json', json_output, (error) => {
+        //     if (error) {
+        //         logger.debug('Error writing output to file');
+        //         return null;
+        //     }
+        //     else {
+        //         logger.info('Output written to file');
+        //         return 1;
+        //     }
+        // });
+        //Write Output to Console
+        console.log(json_output);
     }
     catch (error) {
         logger.debug(`Error calculating Net Score for ${owner}/${repo}`);
