@@ -1,4 +1,3 @@
-import exp from 'constants';
 import { calculateCorrectness, fetchCorrectnessData, getCorrectness } from '../src/correctness'; // Adjust the path as necessary
 
 describe('calculateCorrectness', () => {

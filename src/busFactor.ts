@@ -63,7 +63,7 @@ export async function getBusFactor(owner: string, repo: string, token: string){
     return busFactor;
   }
   catch (error: any) {
-    logger.error(`Error getting bus factor: ${error.message}`);
+    logger.debug(`Error getting bus factor: ${error.message}`);
     return null;
   }
 }
