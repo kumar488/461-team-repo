@@ -3,25 +3,29 @@ import logger from './logger';
 
 //Get Number of Contributors from a Given Repository
 export async function getNumContributors(owner: string, repo: string, token: string){
-    try {
-      logger.debug(`Fetching contributors for ${owner}/${repo}`);
-      const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors`, {
-        headers: {
-          Authorization: `token ${token}`,
-        },
-        params: {
-          per_page: 100,
-          page: 1
-        }
-      });
-      const numContributors = response.data.length;
-      logger.debug(`Fetched ${numContributors} contributors`);
-      return numContributors;
-    }
-    catch (error: any) {
-      logger.debug(`Error fetching contributors: ${error.message}`);
-      return null;
-    }
+  if (!owner || !repo || !token) {
+    logger.error(`Error getting number of contributors: Invalid arguments`);
+    return null;
+  }  
+  try {
+    logger.debug(`Fetching contributors for ${owner}/${repo}`);
+    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors`, {
+      headers: {
+        Authorization: `token ${token}`,
+      },
+      params: {
+        per_page: 100,
+        page: 1
+      }
+    });
+    const numContributors = response.data.length;
+    logger.debug(`Fetched ${numContributors} contributors`);
+    return numContributors;
+  }
+  catch (error: any) {
+    logger.debug(`Error fetching contributors: ${error.message}`);
+    return null;
+  }
 }
 
 //Calculate Bus Factor Score
@@ -53,6 +57,10 @@ export function calculateBusFactor(minAcceptableContributors: number, maxAccepta
 
 //Outer Function to get Bus Factor
 export async function getBusFactor(owner: string, repo: string, token: string){
+  if (!owner || !repo || !token) {
+    logger.error(`Error getting bus factor: Invalid arguments`);
+    return null;
+  }
   try {
     const numContributors = await getNumContributors(owner, repo, token);
     if (numContributors === null) {
