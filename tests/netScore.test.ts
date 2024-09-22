@@ -1,7 +1,7 @@
 import { calculateNetScore, processBatch, getNetScore } from '../src/netScore';
 
 describe('calculateNetScore', () => {
-    it('should return null if any of the inputs are not between 0 and 1', async () => {
+    it('should return null if any of the inputs are not between 0 and 1 and not -1', async () => {
         const rampUp = 0.5;
         const correctness = 0.5;
         const busFactor = -4;
