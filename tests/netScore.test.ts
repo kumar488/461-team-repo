@@ -19,6 +19,15 @@ describe('calculateNetScore', () => {
         const netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
         expect(netScore).toBe(0.5);
     });
+    it('should ignore a metric if it is -1', async () => {
+        const rampUp = 0.5;
+        const correctness = 0.5;
+        const busFactor = -1;
+        const responsiveMaintainer = 0.5;
+        const license = 1;
+        const netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
+        expect(netScore).toBe(0.4);
+    });
     it('should return 0 if license is 0', async () => {
         const rampUp = 0.5;
         const correctness = 0.5;
@@ -26,20 +35,22 @@ describe('calculateNetScore', () => {
         const responsiveMaintainer = 0.5;
         const license = 0;
         const netScore = calculateNetScore(rampUp, correctness, busFactor, responsiveMaintainer, license);
-        expect(netScore).toBe(0.5);
+        expect(netScore).toBe(0);
     });
-    it('should return null if inputs are invalid', async () => {
-        const token = 'invalidToken';
-        const owner = 'invalidOwner';
-        const repo = 'invalidRepo';
-        const url = 'invalidUrl';
-        const netScore = getNetScore(url, owner, repo, token);
-        expect(netScore).toBeNull();
-    });
+    it('should return score if inputs are valid', async () => {
+        jest.setTimeout(300000); // Set timeout to 30 seconds
+        const owner = 'lodash';
+        const repo = 'lodash';
+        const token = process.env.GITHUB_TOKEN || '';
+        const url = 'https://github.com/lodash/lodash';
+        const netScore = await getNetScore(url, owner, repo, token);
+        expect(netScore).toBe(0.4);
+    }
+    , 30000);
     it('should return 0 if none of the urls in the batch are valid', async () => {
         const token = 'invalidToken';
         const url_batch = ['invalidUrl1', 'invalidUrl2', 'invalidUrl3', 'invalidUrl4', 'invalidUrl5'];
-        const netScore = processBatch(url_batch, token);
+        const netScore = await processBatch(url_batch, token);
         expect(netScore).toBe(0);
     });
 });
