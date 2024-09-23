@@ -5,6 +5,7 @@ import logger from './logger'; //Import the logger
 import fs from 'fs'; //Import the file system module
 import { log } from 'console';
 import { RunProject } from './netScore';
+import { loadEnvFile } from 'process';
 
 const execAsync = promisify(exec);
 
@@ -23,7 +24,7 @@ program
         try {
             const {stdout, stderr} = await execAsync('npm install ' + modulesString); //Run npm install
 
-            logger.info(`${modules.length} dependencies installed successfully`);
+            console.log(`${modules.length} dependencies installed...`);
 
             if (stderr) { logger.debug(`Error installing dependencies: ${stderr}`); } //Output any errors
             
@@ -60,8 +61,11 @@ program
             const passed = testResults ? parseInt(testResults[1], 10) : 0;
             const total = testResults ? parseInt(testResults[2], 10) : 0;
             const coverage = coverageResults ? parseFloat(coverageResults[1]) : 0;
-
-            logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
+            
+            console.log("Total: " + total);
+            console.log("Passed: " + passed);
+            console.log("Coverage: " + coverage + "%");
+            console.log(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
 
             // Exit with code 0 for success or non-zero for failure
             logger.debug("RC: 0");
@@ -78,7 +82,10 @@ program
             
             logger.debug(`Test Errors:\n${error.stderr}`);
             logger.debug(`Test Results:\n${error.stdout}`);
-            logger.info(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
+            console.log("Total: " + total);
+            console.log("Passed: " + passed);
+            console.log("Coverage: " + coverage + "%");
+            console.log(`${passed}/${total} test cases passed. ${coverage}% line coverage achieved.`);
             
             logger.debug("RC: 1");
             logger.close();
