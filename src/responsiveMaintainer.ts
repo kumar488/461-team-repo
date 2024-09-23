@@ -60,13 +60,13 @@ export async function calculateResponsiveMaintainer(issues: any[]) {
 
                 totalResponseTime += responseTime;
                 issuesWithResponse++;
-                logger.debug(`Issue #${issue.number} has a response time of ${responseTime} hours`);
+                //logger.debug(`Issue #${issue.number} has a response time of ${responseTime} hours`);
             } else {
                 //no comment assume response time rounded to nearest 24 hours
                 const assumedResponseTime = Math.ceil(hoursSinceCreated / 24) * 24;
                 totalResponseTime += assumedResponseTime;
                 issuesWithResponse++;
-                logger.debug(`Issue #${issue.number} has no response, assuming response time of ${assumedResponseTime} hours`);
+                //logger.debug(`Issue #${issue.number} has no response, assuming response time of ${assumedResponseTime} hours`);
             }
         }
 

@@ -43,6 +43,49 @@ describe('getLicense', () => {
         expect(result).toBe(1);
     });
 
+    it('should return 1 if a compatible license is found in the LICENSE file', async () => {
+        const ownerName = 'test-owner';
+        const repoName = 'test-repo';
+        const defaultBranch = 'main';
+
+        // Mock the GitHub API to return the default branch
+        mock.onGet(`https://api.github.com/repos/${ownerName}/${repoName}`).reply(200, {
+            default_branch: defaultBranch
+        });
+
+        // Mock the raw.githubusercontent.com API to return a compatible license file
+        mock.onGet(`https://raw.githubusercontent.com/${ownerName}/${repoName}/${defaultBranch}/LICENSE`).reply(200, 'No License');
+        // Mock the raw.githubusercontent.com API to return a compatible readme file
+        mock.onGet(`https://raw.githubusercontent.com/${ownerName}/${repoName}/${defaultBranch}/README.md`).reply(200, 'GNU Lesser General Public License v2.1');
+
+        const result = await getLicense(ownerName, repoName);
+
+        // Check if it returns 1 for a compatible license
+        expect(result).toBe(1);
+    });
+
+    it('should return 0 if the README.md file contains an incompatible license', async () => {
+        const ownerName = 'test-owner';
+        const repoName = 'test-repo';
+        const defaultBranch = 'main';
+    
+        // Mock the GitHub API to return the default branch
+        mock.onGet(`https://api.github.com/repos/${ownerName}/${repoName}`).reply(200, {
+            default_branch: defaultBranch
+        });
+    
+        // Mock the raw.githubusercontent.com API to simulate the LICENSE file not being present
+        mock.onGet(`https://raw.githubusercontent.com/${ownerName}/${repoName}/${defaultBranch}/LICENSE`).reply(404);
+    
+        // Mock the raw.githubusercontent.com API to return an incompatible license in README.md
+        mock.onGet(`https://raw.githubusercontent.com/${ownerName}/${repoName}/${defaultBranch}/README.md`).reply(200, 'Proprietary License');
+    
+        const result = await getLicense(ownerName, repoName);
+    
+        // Check if it returns 0 for an incompatible license in the README.md file
+        expect(result).toBe(0);
+    });
+
     it('should return true for LGPLv2.1', () => {
         const content = 'GNU Lesser General Public License v2.1';
         const result = checkLicenseCompatibility(content);

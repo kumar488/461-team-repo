@@ -12,7 +12,7 @@ export async function fetchCorrectnessData(ownerName: string, repoName: string, 
 
     try {
         while(hasMoreIssues) {
-            logger.debug(`Fetching page ${page} of issues...`);
+            //logger.debug(`Fetching page ${page} of issues...`);
             const apiURL = `https://api.github.com/repos/${ownerName}/${repoName}/issues?state=all&per_page=${perPage}&page=${page}&since=${lastMonth}`;
 
             const response = await axios.get(apiURL, {
@@ -36,7 +36,7 @@ export async function fetchCorrectnessData(ownerName: string, repoName: string, 
 
 export async function calculateCorrectness(issues: any[]) {
     try {
-        logger.debug(`Fetched ${issues.length} issues`);
+        //logger.debug(`Fetched ${issues.length} issues`);
         //Filter out pull requests
         const actualIssues = issues.filter((issue: any) => !issue.pull_request);
         logger.debug(`Found ${actualIssues.length} issues after filtering out pull requests`);
