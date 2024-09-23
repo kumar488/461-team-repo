@@ -123,20 +123,20 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
         //Construct Output Data
         const output_data = {
             URL: url,
-            NetScore: netScore.toFixed(1),
-            NetScore_Latency: netScoreLatency,
-            RampUp: rampUp.toFixed(1),
-            RampUp_Latency: rampUpLatency,
-            Correctness: correctness.toFixed(1),
-            Correctness_Latency: correctnessLatency,
-            BusFactor: busFactor.toFixed(1),
-            BusFactor_Latency: busFactorLatency,
-            ResponsiveMaintainer: responsiveMaintainer.toFixed(1),
-            ResponsiveMaintainer_Latency: responsiveMaintainerLatency,
-            License: license.toFixed(1),
-            License_Latency: licenseLatency
+            NetScore: parseFloat(netScore.toFixed(1)),
+            NetScore_Latency: parseFloat(netScoreLatency),
+            RampUp: parseFloat(rampUp.toFixed(1)),
+            RampUp_Latency: parseFloat(rampUpLatency),
+            Correctness: parseFloat(correctness.toFixed(1)),
+            Correctness_Latency: parseFloat(correctnessLatency),
+            BusFactor: parseFloat(busFactor.toFixed(1)),
+            BusFactor_Latency: parseFloat(busFactorLatency),
+            ResponsiveMaintainer: parseFloat(responsiveMaintainer.toFixed(1)),
+            ResponsiveMaintainer_Latency: parseFloat(responsiveMaintainerLatency),
+            License: parseFloat(license.toFixed(1)),
+            License_Latency: parseFloat(licenseLatency)
         }
-        const json_output = JSON.stringify(output_data);
+        const json_output = JSON.stringify(output_data, null, 2);
         //Print Output Data to Stdout
         console.log(json_output);
         netScore = Math.round(netScore*10)/10;
