@@ -1,3 +1,84 @@
-#!/usr/bin/env node
+#!/bin/bash
 
-require('./src/cli.js')
+install_modules() {
+    modules=('jest' 'axios' 'dotenv' 'winston' 'axios-mock-adapter')
+    num_modules=5
+    echo "Installing modules..."
+
+    npm install "${modules[@]}"
+
+    if [ $? -eq 0 ]; then
+        echo "${num_modules} dependencies installed..."
+
+        npx tsc
+        
+        if [ $? -eq 0 ]; then
+            echo "TypeScript compilation completed successfully."
+            exit 0
+        else
+            echo "TypeScript compilation failed!"
+            exit 1
+        fi
+
+    else
+        echo "Failed to install modules!"
+        exit 1
+    fi
+}
+
+run_tests() {
+    echo "Running tests..."
+
+    output=$(npx jest --coverage --silent --noStackTrace 2>&1)
+
+    # echo "$output"
+    test_results=$(echo "$output" | grep -Po 'Tests:\s+(?:\d+\s+failed,\s+)?(\d+)\s+passed,\s+(\d+)\s+total')
+    coverage_results=$(echo "$output" | grep -Po 'All files\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+[\d.]+\s+\|\s+\K[\d.]+')
+
+    if [ -z "$test_results" ]; then
+        echo "No test results found!"
+        exit 1
+    fi
+
+    passed=$(echo "$test_results" | grep -Po '\d+(?=\s+passed)')
+    total=$(echo "$test_results" | grep -Po '\d+(?=\s+total)')
+    coverage=$(echo "$coverage_results")
+
+    echo "Total: $total"
+    echo "Passed: $passed"
+    echo "Coverage: $coverage%"
+    echo "$passed/$total test cases passed. $coverage% line coverage achieved."
+
+    if [ "$passed" -eq "$total" ]; then
+        echo "All test cases passed."
+        exit 0
+    else
+        echo "Some test cases failed."
+        exit 0
+    fi
+}
+
+urlFile() {
+    urlFile=$1
+
+    # echo "Processing URL file: $urlFile"
+    node ./src/main.js "$urlFile"
+
+    if [ $? -eq 0 ]; then
+        exit 0
+    else
+        echo "URL processing failed."
+        exit 1
+    fi
+}
+
+if [ "$1" == "install" ]; then
+    install_modules
+elif [ "$1" == "test" ]; then
+    run_tests
+elif [ -f "$1" ]; then
+    urlFile "$1"
+else
+    echo "Invalid command!"
+    exit 1
+fi

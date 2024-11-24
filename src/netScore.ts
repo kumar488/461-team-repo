@@ -136,8 +136,9 @@ export async function getNetScore(url:string, owner:string, repo:string, TOKEN: 
             License: parseFloat(license.toFixed(1)),
             License_Latency: parseFloat(licenseLatency)
         }
-        const json_output = JSON.stringify(output_data, null, 2);
+        const json_output = JSON.stringify(output_data)
         //Print Output Data to Stdout
+        logger.info(json_output);
         console.log(json_output);
         netScore = Math.round(netScore*10)/10;
         return netScore;
